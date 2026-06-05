@@ -41,6 +41,7 @@ export default function DashboardLayout({
   }, [router]);
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     router.replace("/login");
   };
 
@@ -116,7 +117,7 @@ export default function DashboardLayout({
         <div className="mt-auto px-2 border-t pt-4">
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive group"
+            className="cursor-pointer flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive group"
           >
             <LogOut className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
             <span>Logout</span>

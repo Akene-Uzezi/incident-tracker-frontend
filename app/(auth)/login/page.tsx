@@ -1,4 +1,3 @@
-// src/app/(auth)/login/page.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -14,12 +13,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -47,12 +48,19 @@ export default function LoginPage() {
           body: JSON.stringify({ email, password }),
         },
       );
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
-        console.log(data);
+        const token = data.token;
+        const user = data.user;
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        router.replace("/dashboard");
+      } else {
+        setError(`${data.error}`);
       }
     } catch (e) {
       setError("An error occurred. Please try again.");
+      console.log(e);
     } finally {
       setIsLoading(false);
     }
