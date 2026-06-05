@@ -84,6 +84,9 @@ export default function RegisterPage() {
 
       if (response.ok) {
         setSuccess(true);
+        setTimeout(() => {
+          setSuccess(false);
+        }, 5000);
         setName("");
         setEmail("");
         setPassword("");
@@ -92,12 +95,14 @@ export default function RegisterPage() {
       } else {
         const data = await response.json();
         setError(data.error || "Failed to register user. Please try again.");
+        setTimeout(() => {
+          setError(null);
+        }, 5000);
       }
     } catch (err) {
+      setError("An architectural or network error occurred. Please try again.");
       setTimeout(() => {
-        setError(
-          "An architectural or network error occurred. Please try again.",
-        );
+        setError(null);
       }, 5000);
       console.error(err);
     } finally {
@@ -132,7 +137,7 @@ export default function RegisterPage() {
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 <AlertTitle>Success</AlertTitle>
                 <AlertDescription>
-                  User account created successfully! Redirecting...
+                  User account created successfully!
                 </AlertDescription>
               </Alert>
             )}

@@ -56,8 +56,9 @@ export default function LoginPage() {
         localStorage.setItem("user", JSON.stringify(user));
         router.replace("/dashboard");
       } else {
+        setError(`${data.error}`);
         setTimeout(() => {
-          setError(`${data.error}`);
+          setError(null);
         }, 5000);
       }
     } catch (e) {
