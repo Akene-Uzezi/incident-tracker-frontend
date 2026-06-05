@@ -10,6 +10,7 @@ import {
   FilePlus2,
   Settings,
   LogOut,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -66,8 +67,8 @@ export default function DashboardLayout({
     {
       label: "Add User",
       href: "/dashboard/register",
-      icon: FilePlus2,
-      variant: pathname === "/dashboard/add-user" ? "default" : "ghost",
+      icon: UserPlus,
+      variant: pathname === "/dashboard/register" ? "default" : "ghost",
     },
   ];
 
