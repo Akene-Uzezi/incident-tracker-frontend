@@ -1,5 +1,6 @@
 import React from "react";
 import "@/app/globals.css";
+import { Toaster } from "sonner";
 
 export const metadata = {
   title: "Incident Tracker",
@@ -13,7 +14,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+
+        <Toaster richColors closeButton />
+      </body>
     </html>
   );
 }
