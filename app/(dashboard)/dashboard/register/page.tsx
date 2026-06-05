@@ -62,7 +62,6 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      // Grab token since only authorized accounts (like SuperAdmin) should reach this endpoint
       const token = localStorage.getItem("token");
 
       const response = await fetch(
@@ -85,23 +84,21 @@ export default function RegisterPage() {
 
       if (response.ok) {
         setSuccess(true);
-        // Clear Form fields on success
         setName("");
         setEmail("");
         setPassword("");
         setRole("");
         setDepartment("");
-
-        // Optional: Redirect back to main dashboard view after a brief delay
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 2000);
       } else {
         const data = await response.json();
-        setError(data.message || "Failed to register user. Please try again.");
+        setError(data.error || "Failed to register user. Please try again.");
       }
     } catch (err) {
-      setError("An architectural or network error occurred. Please try again.");
+      setTimeout(() => {
+        setError(
+          "An architectural or network error occurred. Please try again.",
+        );
+      }, 5000);
       console.error(err);
     } finally {
       setIsLoading(false);
