@@ -84,7 +84,7 @@ export default function DashboardLayout({
     },
     {
       label: "Reset Password",
-      href: "dashboard/resetpassword",
+      href: "/dashboard/resetpassword",
       icon: LockKeyhole,
       variant: pathname === "/dashboard/resetpassword" ? "default" : "ghost",
     },

@@ -265,7 +265,8 @@ export default function IncidentTracker() {
         open={!!selectedIncident}
         onOpenChange={(open) => !open && setSelectedIncident(null)}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* FIX: Changed max-w-5xl to sm:max-w-5xl to forcefully override shadcn/ui defaults */}
+        <DialogContent className="sm:max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
             <DialogTitle className="text-2xl flex items-center gap-2">
               Incident Detail Report
@@ -277,40 +278,40 @@ export default function IncidentTracker() {
           </DialogHeader>
 
           {selectedIncident && (
-            <div className="space-y-6 pt-4">
+            <div className="space-y-6 pt-2">
               {/* Primary Summary Badges */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-muted/40 p-3 rounded-lg border">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Calendar className="h-3 w-3" /> Date
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-muted/40 p-4 rounded-lg border">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
+                    <Calendar className="h-3.5 w-3.5 text-primary" /> Date
                   </span>
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-semibold">
                     {selectedIncident.dateOfIncident}
                   </span>
                 </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-3 w-3" /> Time
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
+                    <Clock className="h-3.5 w-3.5 text-primary" /> Time
                   </span>
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-semibold">
                     {selectedIncident.timeOfIncident}
                   </span>
                 </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <MapPin className="h-3 w-3" /> Location
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
+                    <MapPin className="h-3.5 w-3.5 text-primary" /> Location
                   </span>
-                  <span className="text-sm font-medium capitalize">
+                  <span className="text-sm font-semibold capitalize break-words">
                     {selectedIncident.locationOfIncident}
                   </span>
                 </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs text-muted-foreground">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground font-medium">
                     Severity Classification
                   </span>
                   <div>
                     <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${getSeverityBadgeClass(selectedIncident.severityLevel)}`}
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${getSeverityBadgeClass(selectedIncident.severityLevel)}`}
                     >
                       {selectedIncident.severityLevel}
                     </span>
@@ -319,74 +320,75 @@ export default function IncidentTracker() {
               </div>
 
               {/* Grid Block: Info Categories */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-3 border p-3 rounded-md bg-background">
-                  <h3 className="text-sm font-semibold tracking-tight border-b pb-1 text-primary">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Reporter Details Panel */}
+                <div className="space-y-4 border p-4 rounded-md bg-background shadow-sm">
+                  <h3 className="text-sm font-bold tracking-tight border-b pb-2 text-primary uppercase">
                     Reporter Details
                   </h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <User className="h-3.5 w-3.5" /> Full Name:
-                      </span>{" "}
-                      <span className="font-medium">
-                        {selectedIncident.reporterName}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <Briefcase className="h-3.5 w-3.5" /> Department:
-                      </span>{" "}
-                      <span className="font-medium uppercase">
-                        {selectedIncident.department}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground text-xs">
-                        Job Position:
-                      </span>{" "}
-                      <span className="font-medium">
-                        {selectedIncident.position}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5" /> Contact Info:
-                      </span>{" "}
-                      <span className="font-medium">
-                        {selectedIncident.contactInfo}
-                      </span>
-                    </div>
+                  {/* FIX: Transformed from fragile flex rows into a responsive definition list grid */}
+                  <div className="grid grid-cols-[100px_1fr] gap-x-4 gap-y-3 text-sm items-baseline">
+                    <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                      <User className="h-4 w-4 text-muted-foreground/70 shrink-0" />{" "}
+                      Name
+                    </span>
+                    <span className="font-semibold text-foreground break-words">
+                      {selectedIncident.reporterName}
+                    </span>
+
+                    <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                      <Briefcase className="h-4 w-4 text-muted-foreground/70 shrink-0" />{" "}
+                      Dept
+                    </span>
+                    <span className="font-semibold text-foreground uppercase break-words">
+                      {selectedIncident.department}
+                    </span>
+
+                    <span className="text-muted-foreground font-medium pl-5">
+                      Position
+                    </span>
+                    <span className="font-semibold text-foreground break-words">
+                      {selectedIncident.position}
+                    </span>
+
+                    <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                      <Phone className="h-4 w-4 text-muted-foreground/70 shrink-0" />{" "}
+                      Contact
+                    </span>
+                    <span className="font-semibold text-foreground break-words">
+                      {selectedIncident.contactInfo}
+                    </span>
                   </div>
                 </div>
 
-                <div className="space-y-3 border p-3 rounded-md bg-background">
-                  <h3 className="text-sm font-semibold tracking-tight border-b pb-1 text-primary">
+                {/* Contextual Parameters Panel */}
+                <div className="space-y-4 border p-4 rounded-md bg-background shadow-sm">
+                  <h3 className="text-sm font-bold tracking-tight border-b pb-2 text-primary uppercase">
                     Contextual Parameters
                   </h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-muted-foreground text-xs">
+                  <div className="space-y-3 text-sm">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-muted-foreground text-xs font-medium">
                         Incident Typology Classification:
                       </span>
-                      <span className="font-medium bg-muted px-2 py-0.5 rounded text-xs w-fit">
+                      <span className="font-medium bg-muted px-2 py-1 rounded text-xs w-fit break-all border">
                         {selectedIncident.typeOfIncident}
                       </span>
                     </div>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-muted-foreground text-xs">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-muted-foreground text-xs font-medium">
                         Personnel/People Involved:
                       </span>
-                      <span className="font-medium text-xs break-words">
+                      <span className="font-semibold text-foreground break-words bg-muted/20 p-1.5 rounded border border-dashed">
                         {selectedIncident.peopleInvolved ||
                           "No third party individual listed"}
                       </span>
                     </div>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-muted-foreground text-xs">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-muted-foreground text-xs font-medium">
                         Supervisor Account Informed:
                       </span>
-                      <span className="font-medium text-xs">
+                      <span className="font-semibold text-foreground break-words bg-muted/20 p-1.5 rounded border border-dashed">
                         {selectedIncident.supervisorNotified || "None declared"}
                       </span>
                     </div>
@@ -395,43 +397,43 @@ export default function IncidentTracker() {
               </div>
 
               {/* Full Width Paragraph Descriptors */}
-              <div className="space-y-3 border p-4 rounded-md bg-background">
-                <h3 className="text-sm font-semibold tracking-tight border-b pb-1 text-primary">
+              <div className="space-y-4 border p-4 rounded-md bg-background shadow-sm">
+                <h3 className="text-sm font-bold tracking-tight border-b pb-2 text-primary uppercase">
                   Incident Statements & Declarations
                 </h3>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     Detailed Log Description
                   </h4>
-                  <p className="text-sm text-foreground bg-muted/30 p-2.5 rounded border border-dashed whitespace-pre-wrap leading-relaxed">
+                  <p className="text-sm text-foreground bg-muted/30 p-3 rounded border whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">
                     {selectedIncident.descriptionOfIncident}
                   </p>
                 </div>
 
-                <div className="space-y-2 pt-1">
+                <div className="space-y-1.5 pt-1">
                   <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     Immediate Safety Action Executed
                   </h4>
-                  <p className="text-sm text-foreground bg-muted/30 p-2.5 rounded border border-dashed whitespace-pre-wrap leading-relaxed">
+                  <p className="text-sm text-foreground bg-muted/30 p-3 rounded border whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">
                     {selectedIncident.immediateActionTaken}
                   </p>
                 </div>
 
-                <div className="space-y-2 pt-1">
+                <div className="space-y-1.5 pt-1">
                   <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     Bodily Injury or Property Damage Assertions
                   </h4>
-                  <p className="text-sm text-foreground bg-muted/30 p-2.5 rounded border border-dashed whitespace-pre-wrap leading-relaxed">
+                  <p className="text-sm text-foreground bg-muted/30 p-3 rounded border whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">
                     {selectedIncident.injuryOrDamage}
                   </p>
                 </div>
 
-                <div className="space-y-2 pt-1">
+                <div className="space-y-1.5 pt-1">
                   <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     Recommended Continuous Preventive Actions
                   </h4>
-                  <p className="text-sm text-card-foreground bg-primary/5 p-2.5 rounded border border-primary/20 whitespace-pre-wrap leading-relaxed">
+                  <p className="text-sm text-card-foreground bg-primary/5 p-3 rounded border border-primary/20 whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">
                     {selectedIncident.recommendedPreventiveAction}
                   </p>
                 </div>
@@ -441,6 +443,7 @@ export default function IncidentTracker() {
                 <Button
                   variant="outline"
                   onClick={() => setSelectedIncident(null)}
+                  className="px-5 font-medium"
                 >
                   Close File Record
                 </Button>

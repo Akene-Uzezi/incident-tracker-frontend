@@ -30,7 +30,7 @@ interface UserProfile {
   disabled: boolean;
 }
 
-export default function ResetPasswordPage() {
+export default function resetpassword() {
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState(""); // State for typed password
   const [isMutating, setIsMutating] = useState(false);
