@@ -160,7 +160,7 @@ export default function Dashboard() {
       if (!response.ok) {
         if (response.status === 403) {
           throw new Error(
-            "Forbidden: You are not allowed to update this incident (Department mismatch)",
+            "Forbidden: You are not allowed to update this incident's status",
           );
         }
         const errorData = await response.json().catch(() => ({}));
