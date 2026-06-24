@@ -45,7 +45,6 @@ const VALID_STATUSES: { value: IncidentStatus; label: string }[] = [
   { value: "resolved", label: "Resolved" },
 ];
 
-// Synchronized model with Go backend JSON tags & PostgreSQL table schema
 export interface IncidentReport {
   id: number;
   principalName: string;
@@ -67,7 +66,7 @@ export interface IncidentReport {
   witnessType?: string;
   witnessWardDept?: string;
   witnessJobTitle?: string;
-  witenssPhone?: string; // Safely mapped to preserved backend JSON tag typo
+  witenssPhone?: string; // Preserved to match the backend JSON tag typo safely
   isNearMiss: boolean;
   causeGroup: string;
   causes: string;
@@ -84,7 +83,7 @@ export interface IncidentReport {
   reporterDesignation: string;
   signature: boolean;
   reporterInfo: string;
-  date: string; // Maps perfectly to structural tag for submission date
+  date: string;
   severityLevel: SeverityLevel;
   incidentStatus: IncidentStatus;
 }
@@ -264,13 +263,12 @@ export default function Dashboard() {
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground font-medium animate-pulse">
-                Retrieving localized file secure transmissions...
+                Retrieving data logs...
               </p>
             </div>
           ) : incidents.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
-              No reported files match your credential profile authorization
-              limits.
+              No reported incident files found matching your profile.
             </div>
           ) : (
             <div className="space-y-4">
@@ -352,8 +350,8 @@ export default function Dashboard() {
               {pagination && pagination.total_pages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 px-1">
                   <div className="text-xs text-muted-foreground font-medium">
-                    Showing total {pagination.total_items} records found Across
-                    Clinical Sectors
+                    Showing total {pagination.total_items} records across
+                    clinical sectors
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button
@@ -401,7 +399,7 @@ export default function Dashboard() {
                     </DialogTitle>
                     <DialogDescription className="text-sm text-muted-foreground mt-1">
                       Full administrative context mapping, statement
-                      documentation and risk assessment registry parameters.
+                      documentation and risk assessment parameters.
                     </DialogDescription>
                   </div>
 
@@ -453,7 +451,7 @@ export default function Dashboard() {
               </DialogHeader>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                {/* 1. TOP LEFT CONTAINER: ADMINISTRATIVE METRICS */}
+                {/* 1. ADMINISTRATIVE METRICS */}
                 <div className="lg:col-span-1 space-y-4">
                   <div className="bg-muted/30 p-5 rounded-xl border border-muted/70 shadow-sm space-y-5">
                     <div>
@@ -553,7 +551,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* 2. TOP RIGHT CONTAINER: CLINICAL & CASE CONTEXT DATA */}
+                {/* 2. CLINICAL & CASE CONTEXT DATA */}
                 <div className="lg:col-span-2 bg-muted/20 p-5 rounded-xl border border-muted/60 shadow-sm space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
@@ -568,7 +566,7 @@ export default function Dashboard() {
                       <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                         Principal Person Involved
                       </h4>
-                      <p className="text-sm text-foreground bg-background p-3 rounded-lg border shadow-sm">
+                      <div className="text-sm text-foreground bg-background p-3 rounded-lg border shadow-sm">
                         <span className="font-medium">
                           {selectedIncident.principalName}
                         </span>{" "}
@@ -577,11 +575,11 @@ export default function Dashboard() {
                           {selectedIncident.principalGender} | DOB:{" "}
                           {selectedIncident.principalDob}
                         </span>
-                      </p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Contextual breakdown blocks based on Principal Person Classification */}
+                  {/* Dynamic sub-panels checking profile metrics */}
                   {(selectedIncident.patientId ||
                     selectedIncident.staffJobTitle) && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-background/60 p-4 rounded-lg border text-sm">
@@ -728,7 +726,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* 3. BOTTOM CONTAINER: COMPLIANCE AND VALIDATION SYSTEM */}
+                {/* 3. COMPLIANCE AND VALIDATION SYSTEM */}
                 <div className="lg:col-span-3 bg-primary/5 p-5 rounded-xl border border-primary/20 shadow-sm space-y-3">
                   <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                     <ShieldCheck className="h-3.5 w-3.5 text-primary" />{" "}
