@@ -39,30 +39,53 @@ import { useRouter } from "next/navigation";
 export type SeverityLevel = "near miss" | "minor" | "major" | "critical";
 export type IncidentStatus = "unresolved" | "inprogress" | "resolved";
 
-// Client-side source of truth matching the backend constraints
 const VALID_STATUSES: { value: IncidentStatus; label: string }[] = [
   { value: "unresolved", label: "Unresolved" },
   { value: "inprogress", label: "In Progress" },
   { value: "resolved", label: "Resolved" },
 ];
 
+// Synchronized model with Go backend JSON tags & PostgreSQL table schema
 export interface IncidentReport {
   id: number;
-  reporterName: string;
-  department: string;
-  position: string;
-  contactInfo: string;
+  principalName: string;
+  principalGender: string;
+  principalDob: string;
+  principalType: string;
+  patientId?: string;
+  patientWardDept?: string;
+  staffJobTitle?: string;
+  staffPhone?: string;
+  staffPlaceOfWork?: string;
+  staffSite?: string;
+  peopleInvolved: string;
   dateOfIncident: string;
   timeOfIncident: string;
   locationOfIncident: string;
-  typeOfIncident: string;
-  peopleInvolved: string;
-  descriptionOfIncident: string;
-  immediateActionTaken: string;
-  injuryOrDamage: string;
+  incidentWardDept: string;
+  witnesses?: string;
+  witnessType?: string;
+  witnessWardDept?: string;
+  witnessJobTitle?: string;
+  witenssPhone?: string; // Safely mapped to preserved backend JSON tag typo
+  isNearMiss: boolean;
+  causeGroup: string;
+  causes: string;
+  prescribingDoctor?: string;
+  treatmentReceived: string;
+  equipmentInvolved: string;
+  equipmentModel?: string;
+  equipmentSentForRepair: boolean;
+  equipmentWithdrawn: boolean;
+  equipmentRetained: boolean;
+  equipmentNumber?: string;
+  isMedicalDevice?: string;
+  reporterName: string;
+  reporterDesignation: string;
+  signature: boolean;
+  reporterInfo: string;
+  date: string; // Maps perfectly to structural tag for submission date
   severityLevel: SeverityLevel;
-  supervisorNotified: string;
-  recommendedPreventiveAction: string;
   incidentStatus: IncidentStatus;
 }
 
@@ -134,11 +157,8 @@ export default function Dashboard() {
     fetchIncidents(currentPage);
   }, [currentPage]);
 
-  // Handler to perform backend state modification
   const handleStatusChange = async (newStatus: IncidentStatus) => {
     if (!selectedIncident) return;
-
-    // Minor optimization: Prevent redundant API calls if selecting the same status
     if (selectedIncident.incidentStatus === newStatus) return;
 
     setUpdatingStatus(true);
@@ -169,10 +189,7 @@ export default function Dashboard() {
 
       const updatedIncident: IncidentReport = await response.json();
 
-      // Update local detailed view data context
       setSelectedIncident(updatedIncident);
-
-      // Sync list state tracking matrix updates smoothly
       setIncidents((prev) =>
         prev.map((inc) =>
           inc.id === updatedIncident.id ? updatedIncident : inc,
@@ -268,10 +285,10 @@ export default function Dashboard() {
                         Reporter
                       </TableHead>
                       <TableHead className="font-semibold text-foreground py-3.5">
-                        Department
+                        Incident Ward/Dept
                       </TableHead>
                       <TableHead className="font-semibold text-foreground py-3.5">
-                        Incident Type
+                        Cause Group
                       </TableHead>
                       <TableHead className="font-semibold text-foreground py-3.5">
                         Severity
@@ -285,9 +302,9 @@ export default function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {incidents.map((incident, idx) => (
+                    {incidents.map((incident) => (
                       <TableRow
-                        key={idx}
+                        key={incident.id}
                         className="hover:bg-muted/20 transition-colors"
                       >
                         <TableCell className="font-medium whitespace-nowrap py-3.5 pl-4">
@@ -297,10 +314,10 @@ export default function Dashboard() {
                           {incident.reporterName}
                         </TableCell>
                         <TableCell className="whitespace-nowrap capitalize py-3.5">
-                          {incident.department}
+                          {incident.incidentWardDept}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate py-3.5">
-                          {incident.typeOfIncident}
+                          {incident.causeGroup}
                         </TableCell>
                         <TableCell className="py-3.5">
                           <span
@@ -380,7 +397,7 @@ export default function Dashboard() {
                   <div>
                     <DialogTitle className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
                       <FileText className="h-5 w-5 text-muted-foreground" />
-                      Incident Dossier File Record
+                      Incident Dossier File Record #{selectedIncident.id}
                     </DialogTitle>
                     <DialogDescription className="text-sm text-muted-foreground mt-1">
                       Full administrative context mapping, statement
@@ -388,7 +405,6 @@ export default function Dashboard() {
                     </DialogDescription>
                   </div>
 
-                  {/* Enhanced Interactive Action Control Block */}
                   <div className="flex flex-wrap items-center gap-3 shrink-0 bg-muted/40 p-2 rounded-lg border border-muted">
                     <div className="flex items-center gap-2">
                       <label
@@ -436,14 +452,13 @@ export default function Dashboard() {
                 </div>
               </DialogHeader>
 
-              {/* Master Layout Architecture System */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                {/* 1. TOP LEFT CONTAINER */}
+                {/* 1. TOP LEFT CONTAINER: ADMINISTRATIVE METRICS */}
                 <div className="lg:col-span-1 space-y-4">
                   <div className="bg-muted/30 p-5 rounded-xl border border-muted/70 shadow-sm space-y-5">
                     <div>
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider border-b pb-2 mb-3 flex items-center gap-1.5">
-                        <User className="h-3.5 w-3.5" /> Personnel Profile
+                        <User className="h-3.5 w-3.5" /> Reporter Profile
                       </h3>
                       <div className="space-y-3.5">
                         <div className="flex items-start gap-2.5 text-sm">
@@ -465,16 +480,11 @@ export default function Dashboard() {
                           </div>
                           <div>
                             <span className="block font-semibold text-xs text-muted-foreground uppercase tracking-wider">
-                              Department / Position
+                              Designation / Position
                             </span>
                             <span className="capitalize font-medium text-foreground">
-                              {selectedIncident.department}
+                              {selectedIncident.reporterDesignation}
                             </span>
-                            {selectedIncident.position && (
-                              <span className="text-muted-foreground block text-xs mt-0.5 font-normal">
-                                {selectedIncident.position}
-                              </span>
-                            )}
                           </div>
                         </div>
                         <div className="flex items-start gap-2.5 text-sm">
@@ -483,11 +493,10 @@ export default function Dashboard() {
                           </div>
                           <div>
                             <span className="block font-semibold text-xs text-muted-foreground uppercase tracking-wider">
-                              Contact Path
+                              Contact Parameters
                             </span>
-                            <span className="font-medium text-foreground/80">
-                              {selectedIncident.contactInfo ||
-                                "None Registered"}
+                            <span className="font-medium text-foreground/80 break-all">
+                              {selectedIncident.reporterInfo}
                             </span>
                           </div>
                         </div>
@@ -505,7 +514,7 @@ export default function Dashboard() {
                           </div>
                           <div>
                             <span className="block font-semibold text-xs text-muted-foreground uppercase tracking-wider">
-                              Date Logged
+                              Date of Incident
                             </span>
                             <span className="font-medium text-foreground">
                               {selectedIncident.dateOfIncident}
@@ -531,10 +540,11 @@ export default function Dashboard() {
                           </div>
                           <div>
                             <span className="block font-semibold text-xs text-muted-foreground uppercase tracking-wider">
-                              Localization Zone
+                              Location Zone & Dept
                             </span>
                             <span className="font-medium text-foreground">
-                              {selectedIncident.locationOfIncident}
+                              {selectedIncident.locationOfIncident} (
+                              {selectedIncident.incidentWardDept})
                             </span>
                           </div>
                         </div>
@@ -543,43 +553,112 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* 2. TOP RIGHT CONTAINER */}
+                {/* 2. TOP RIGHT CONTAINER: CLINICAL & CASE CONTEXT DATA */}
                 <div className="lg:col-span-2 bg-muted/20 p-5 rounded-xl border border-muted/60 shadow-sm space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                        Incident Type Group
+                        Cause Group
                       </h4>
-                      <p className="text-sm font-semibold text-foreground bg-background p-3 rounded-lg border shadow-sm">
-                        {selectedIncident.typeOfIncident}
+                      <p className="text-sm font-semibold text-foreground bg-background p-3 rounded-lg border shadow-sm capitalize">
+                        {selectedIncident.causeGroup}
                       </p>
                     </div>
                     <div className="space-y-1.5">
                       <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                        Supervisor Notified Route
+                        Principal Person Involved
                       </h4>
                       <p className="text-sm text-foreground bg-background p-3 rounded-lg border shadow-sm">
-                        {selectedIncident.supervisorNotified || "None Noted"}
+                        <span className="font-medium">
+                          {selectedIncident.principalName}
+                        </span>{" "}
+                        <span className="text-xs text-muted-foreground block mt-0.5">
+                          Type: {selectedIncident.principalType} | Gender:{" "}
+                          {selectedIncident.principalGender} | DOB:{" "}
+                          {selectedIncident.principalDob}
+                        </span>
                       </p>
                     </div>
                   </div>
 
+                  {/* Contextual breakdown blocks based on Principal Person Classification */}
+                  {(selectedIncident.patientId ||
+                    selectedIncident.staffJobTitle) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-background/60 p-4 rounded-lg border text-sm">
+                      {selectedIncident.patientId && (
+                        <div className="space-y-1">
+                          <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Patient Registry Data
+                          </span>
+                          <p className="text-xs text-foreground">
+                            <strong>Patient ID:</strong>{" "}
+                            {selectedIncident.patientId}
+                          </p>
+                          <p className="text-xs text-foreground">
+                            <strong>Ward/Dept:</strong>{" "}
+                            {selectedIncident.patientWardDept || "N/A"}
+                          </p>
+                        </div>
+                      )}
+                      {selectedIncident.staffJobTitle && (
+                        <div className="space-y-1">
+                          <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Staff Member Core Data
+                          </span>
+                          <p className="text-xs text-foreground">
+                            <strong>Job Title:</strong>{" "}
+                            {selectedIncident.staffJobTitle}
+                          </p>
+                          <p className="text-xs text-foreground">
+                            <strong>Workplace/Site:</strong>{" "}
+                            {selectedIncident.staffPlaceOfWork} (
+                            {selectedIncident.staffSite})
+                          </p>
+                          <p className="text-xs text-foreground">
+                            <strong>Phone:</strong>{" "}
+                            {selectedIncident.staffPhone || "N/A"}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                        Personnel / Witnesses Involved
+                        Personnel & Witnesses Account
                       </h4>
-                      <div className="text-sm text-foreground bg-background p-4 rounded-lg border shadow-sm whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">
-                        {selectedIncident.peopleInvolved ||
-                          "No third party statements matching profile logs."}
+                      <div className="text-xs text-foreground bg-background p-4 rounded-lg border shadow-sm space-y-3 whitespace-pre-wrap leading-relaxed break-words">
+                        <div>
+                          <span className="block font-bold text-[10px] uppercase text-muted-foreground mb-1">
+                            People Involved:
+                          </span>
+                          <p>{selectedIncident.peopleInvolved}</p>
+                        </div>
+                        {selectedIncident.witnesses && (
+                          <div className="pt-2 border-t border-muted">
+                            <span className="block font-bold text-[10px] uppercase text-muted-foreground mb-1">
+                              Witness Statements ({selectedIncident.witnessType}
+                              ):
+                            </span>
+                            <p className="font-medium">
+                              {selectedIncident.witnesses}
+                            </p>
+                            <p className="text-muted-foreground text-[11px] mt-1">
+                              Dept: {selectedIncident.witnessWardDept} | Title:{" "}
+                              {selectedIncident.witnessJobTitle} | Contact:{" "}
+                              {selectedIncident.witenssPhone}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-1.5">
                       <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                        Chronological Factual Description
+                        Factual Description of Causes
                       </h4>
-                      <div className="text-sm text-foreground bg-background p-4 rounded-lg border shadow-sm whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">
-                        {selectedIncident.descriptionOfIncident}
+                      <div className="text-xs text-foreground bg-background p-4 rounded-lg border shadow-sm whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">
+                        {selectedIncident.causes}
                       </div>
                     </div>
                   </div>
@@ -587,31 +666,103 @@ export default function Dashboard() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                        Immediate Mitigation Measures Taken
+                        Treatment Received Measures
                       </h4>
-                      <div className="text-sm text-foreground bg-background p-4 rounded-lg border shadow-sm whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">
-                        {selectedIncident.immediateActionTaken}
+                      <div className="text-xs text-foreground bg-background p-4 rounded-lg border shadow-sm whitespace-pre-wrap leading-relaxed break-words">
+                        <p>{selectedIncident.treatmentReceived}</p>
+                        {selectedIncident.prescribingDoctor && (
+                          <p className="text-[11px] text-muted-foreground font-medium mt-2 pt-2 border-t">
+                            Prescribing Medical Officer:{" "}
+                            {selectedIncident.prescribingDoctor}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-1.5">
                       <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                        Bodily Injury or Property Damage Assertions
+                        Equipment / Medical Device Allocation
                       </h4>
-                      <div className="text-sm text-foreground bg-background p-4 rounded-lg border shadow-sm whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">
-                        {selectedIncident.injuryOrDamage}
+                      <div className="text-xs text-foreground bg-background p-4 rounded-lg border shadow-sm space-y-1.5">
+                        <p>
+                          <strong>Involved:</strong>{" "}
+                          {selectedIncident.equipmentInvolved}
+                        </p>
+                        {selectedIncident.isMedicalDevice && (
+                          <p>
+                            <strong>Device Status:</strong> Classed as medical
+                            device ({selectedIncident.isMedicalDevice})
+                          </p>
+                        )}
+                        {selectedIncident.equipmentModel && (
+                          <p>
+                            <strong>Model Layout:</strong>{" "}
+                            {selectedIncident.equipmentModel}
+                          </p>
+                        )}
+                        {selectedIncident.equipmentNumber && (
+                          <p>
+                            <strong>Asset Number:</strong>{" "}
+                            {selectedIncident.equipmentNumber}
+                          </p>
+                        )}
+
+                        <div className="flex flex-wrap gap-1.5 pt-2">
+                          {selectedIncident.equipmentSentForRepair && (
+                            <span className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border">
+                              Sent For Repair
+                            </span>
+                          )}
+                          {selectedIncident.equipmentWithdrawn && (
+                            <span className="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border">
+                              Withdrawn
+                            </span>
+                          )}
+                          {selectedIncident.equipmentRetained && (
+                            <span className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border">
+                              Retained
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* 3. BOTTOM CONTAINER */}
-                <div className="lg:col-span-3 bg-primary/5 p-5 rounded-xl border border-primary/20 shadow-sm space-y-2">
+                {/* 3. BOTTOM CONTAINER: COMPLIANCE AND VALIDATION SYSTEM */}
+                <div className="lg:col-span-3 bg-primary/5 p-5 rounded-xl border border-primary/20 shadow-sm space-y-3">
                   <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                     <ShieldCheck className="h-3.5 w-3.5 text-primary" />{" "}
-                    Recommended Continuous Preventive Actions
+                    Reporter Administrative Validation & Safety Assessment
                   </h4>
-                  <div className="text-sm text-card-foreground bg-background p-4 rounded-lg border border-muted/60 shadow-sm whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">
-                    {selectedIncident.recommendedPreventiveAction}
+                  <div className="text-xs text-card-foreground bg-background p-4 rounded-lg border border-muted/60 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-muted-foreground">
+                        <strong>Form Signature Status:</strong>
+                      </p>
+                      <p className="font-semibold text-sm mt-0.5">
+                        {selectedIncident.signature
+                          ? "Verified Electronically Signed"
+                          : "No Signature Record"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">
+                        <strong>Submission System Date:</strong>
+                      </p>
+                      <p className="font-semibold text-sm mt-0.5">
+                        {selectedIncident.date}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">
+                        <strong>Risk Parameter Category:</strong>
+                      </p>
+                      <p className="font-semibold text-sm mt-0.5">
+                        {selectedIncident.isNearMiss
+                          ? "Classified Near Miss Event"
+                          : "Standard Incident Impact Record"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
