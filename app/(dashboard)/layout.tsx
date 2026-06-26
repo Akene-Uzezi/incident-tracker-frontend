@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { Inter } from "next/font/google";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -18,6 +19,11 @@ import {
 import { cn } from "@/lib/utils";
 
 import { NavigationItem, SuperAdminNavigationItem } from "./types/navTypes";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 export default function DashboardLayout({
   children,
@@ -112,7 +118,9 @@ export default function DashboardLayout({
 
   if (!isAuthenticated) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background text-muted-foreground">
+      <div
+        className={`${inter.variable} flex h-screen w-screen items-center justify-center bg-background text-muted-foreground`}
+      >
         <div className="flex flex-col items-center gap-2">
           <ShieldAlert className="h-8 w-8 text-destructive animate-pulse" />
           <p className="text-sm font-medium tracking-wide">
@@ -124,7 +132,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-muted/20">
+    <div className={`${inter.variable} flex min-h-screen bg-muted/20`}>
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-20 hidden flex-col border-r bg-background p-4 md:flex transition-all duration-300 ease-in-out",
