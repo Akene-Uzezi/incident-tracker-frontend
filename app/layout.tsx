@@ -1,6 +1,12 @@
 import React from "react";
 import "@/app/globals.css";
+import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 export const metadata = {
   title: "Incident Tracker",
@@ -13,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable}`}>
       <body className="antialiased">
         {children}
 
