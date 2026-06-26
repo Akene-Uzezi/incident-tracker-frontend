@@ -91,7 +91,6 @@ export interface IncidentReport {
   incidentStatus: IncidentStatus;
 }
 
-// Added backend data model interface alignment
 export interface IncidentManagement {
   id?: number;
   incidentId: number;
@@ -142,7 +141,6 @@ export default function Dashboard() {
     useState<IncidentReport | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<boolean>(false);
 
-  // New states managed for Section H Management Reports
   const [managementReport, setManagementReport] =
     useState<IncidentManagement | null>(null);
   const [loadingManagement, setLoadingManagement] = useState<boolean>(false);
@@ -150,7 +148,6 @@ export default function Dashboard() {
   const [submittingManagement, setSubmittingManagement] =
     useState<boolean>(false);
 
-  // Management Form Initial State
   const [mgmtForm, setMgmtForm] = useState<Partial<IncidentManagement>>({
     impactOnService: "",
     contributoryFactors: "",
@@ -221,7 +218,6 @@ export default function Dashboard() {
     }
   };
 
-  // Pulls associated Management Report from your backend API
   const fetchManagementReport = async (incidentId: number) => {
     setLoadingManagement(true);
     setManagementReport(null);
@@ -244,7 +240,6 @@ export default function Dashboard() {
         const data = await response.json();
         setManagementReport(data);
       } else if (response.status === 404) {
-        // Report doesn't exist yet, which is safe/expected
         setManagementReport(null);
       } else {
         throw new Error(
@@ -262,11 +257,9 @@ export default function Dashboard() {
     fetchIncidents(currentPage);
   }, [currentPage]);
 
-  // Handle trigger side-effect whenever the details modal opens up
   useEffect(() => {
     if (selectedIncident) {
       fetchManagementReport(selectedIncident.id);
-      // Synchronize context base inside form setup
       setMgmtForm((prev) => ({
         ...prev,
         incidentId: selectedIncident.id,
@@ -282,7 +275,6 @@ export default function Dashboard() {
     }
   }, [selectedIncident]);
 
-  // Automated Matrix calculation tracking
   useEffect(() => {
     const sev = mgmtForm.riskSeverity || 1;
     const like = mgmtForm.riskLikelihood || 1;
@@ -368,9 +360,7 @@ export default function Dashboard() {
       const freshReport = await response.json();
       setManagementReport(freshReport);
       setIsAddingManagement(false);
-      toast.success(
-        "Section H Management Report appended to dossier file successfully.",
-      );
+      toast.success("Management Report appended to dossier file successfully.");
     } catch (error: any) {
       toast.error(
         error.message ||
@@ -755,7 +745,6 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Dynamic sub-panels checking profile metrics */}
                   {(selectedIncident.patientId ||
                     selectedIncident.staffJobTitle) && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-background/60 p-4 rounded-lg border text-sm">
@@ -940,27 +929,13 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* ============================================================== */}
-                {/* DYNAMIC PIPELINE: SECTION H, I, J MANAGEMENT REPORT REGISTRY   */}
-                {/* ============================================================== */}
+                {/* DYNAMIC PIPELINE: MANAGEMENT REPORT REGISTRY */}
                 <div className="lg:col-span-3 border-t pt-6 mt-2 space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
                       <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
-                      Section H, I, & J: Management Evaluation Report
+                      Management Evaluation Report
                     </h3>
-
-                    {!loadingManagement &&
-                      !managementReport &&
-                      !isAddingManagement && (
-                        <Button
-                          size="sm"
-                          onClick={() => setIsAddingManagement(true)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-sm"
-                        >
-                          <Plus className="h-4 w-4" /> Add Management Report
-                        </Button>
-                      )}
                   </div>
 
                   {loadingManagement ? (
@@ -969,7 +944,7 @@ export default function Dashboard() {
                       Analyzing management log records...
                     </div>
                   ) : managementReport ? (
-                    /* VIEW MODE: If the record has been submitted already */
+                    /* VIEW MODE */
                     <div className="bg-emerald-50/20 dark:bg-emerald-950/10 p-6 rounded-xl border border-emerald-500/20 shadow-inner grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="md:col-span-2 space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1015,7 +990,6 @@ export default function Dashboard() {
                           </p>
                         </div>
 
-                        {/* Notifications matrix mapping info */}
                         <div className="space-y-1.5 pt-2">
                           <span className="text-[11px] font-bold uppercase text-muted-foreground block">
                             Stakeholder Notifications Tracking
@@ -1070,13 +1044,11 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      {/* Management Validation Summary Sidebar Panel */}
                       <div className="md:col-span-1 space-y-4 border-l md:pl-6 border-dashed border-emerald-500/20">
-                        {/* Section I: Risk Analysis grading view output */}
                         <div className="bg-background p-4 border rounded-xl shadow-sm space-y-2">
                           <span className="text-[11px] font-bold uppercase text-muted-foreground block flex items-center gap-1">
                             <AlertTriangle className="h-3 w-3 text-amber-500" />{" "}
-                            Section I: Risk Matrix Analysis
+                            Risk Matrix Analysis
                           </span>
                           <div className="grid grid-cols-3 gap-2 text-center text-xs">
                             <div className="p-2 bg-muted rounded border">
@@ -1106,10 +1078,9 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        {/* Section J: Occupational Health evaluation data view */}
                         <div className="bg-background p-4 border rounded-xl shadow-sm space-y-2">
                           <span className="text-[11px] font-bold uppercase text-muted-foreground block">
-                            Section J: OHS Staff Evaluation
+                            OHS Staff Evaluation
                           </span>
                           <div className="text-xs space-y-1.5">
                             <p className="flex justify-between">
@@ -1158,7 +1129,6 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        {/* Administrative Authentication signature lock details */}
                         <div className="bg-muted/40 p-4 border rounded-xl text-xs space-y-1.5">
                           <p>
                             <strong>Manager in Charge:</strong>{" "}
@@ -1180,7 +1150,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                   ) : isAddingManagement ? (
-                    /* FORM CREATE MODE: Inline interactive insertion fields layout mapping */
+                    /* FORM CREATE MODE */
                     <form
                       onSubmit={handleManagementSubmit}
                       className="bg-muted/30 p-6 rounded-xl border space-y-6"
@@ -1289,7 +1259,6 @@ export default function Dashboard() {
                         />
                       </div>
 
-                      {/* Stakeholder Info Circle Selections */}
                       <div className="space-y-2">
                         <span className="text-xs font-bold text-foreground uppercase block">
                           Who was informed?
@@ -1397,13 +1366,11 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      {/* Section I & J Row Complex */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                        {/* Section I: Interactive Risk Calculations */}
                         <div className="bg-background border p-4 rounded-xl space-y-3 shadow-sm">
                           <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1">
                             <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />{" "}
-                            Section I: Risk Analysis
+                            Risk Analysis
                           </span>
                           <div className="space-y-2 text-xs">
                             <div>
@@ -1467,10 +1434,9 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        {/* Section J: Occupational Health Inputs */}
                         <div className="bg-background border p-4 rounded-xl space-y-3 shadow-sm md:col-span-2">
                           <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider block">
-                            Section J: OHS Staff Incidents Evaluation Compliance
+                            OHS Staff Incidents Evaluation Compliance
                           </span>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs mb-3">
                             <label className="flex items-center gap-1.5 bg-muted/50 p-2 border rounded cursor-pointer">
@@ -1518,7 +1484,6 @@ export default function Dashboard() {
                             </label>
                           </div>
 
-                          {/* Render specific OHS tracking fields if checked or if principal is staff */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                             <div>
                               <label
@@ -1585,14 +1550,13 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      {/* Manager Sign-Off Section Form block */}
                       <div className="bg-background border p-4 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs shadow-sm items-end">
                         <div>
                           <label
                             className="block text-muted-foreground mb-1 font-bold uppercase"
                             htmlFor="managerName"
                           >
-                            Manager In Charge Name *
+                            Manager In Charge *
                           </label>
                           <input
                             type="text"
@@ -1672,20 +1636,18 @@ export default function Dashboard() {
                       </div>
                     </form>
                   ) : (
-                    /* EMPTY STATE MODE: If no report exists yet */
+                    /* EMPTY STATE MODE: Singular high-visibility button here */
                     <div className="text-center py-8 border-2 border-dashed rounded-xl bg-muted/10 flex flex-col items-center justify-center p-4">
                       <p className="text-sm text-muted-foreground mb-3 font-medium">
                         No administrative evaluation or action plan has been
                         attached to this clinical event file yet.
                       </p>
                       <Button
-                        variant="outline"
                         size="sm"
                         onClick={() => setIsAddingManagement(true)}
-                        className="border-emerald-500/30 text-emerald-700 hover:bg-emerald-50/50 gap-1"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-sm"
                       >
-                        <Plus className="h-3.5 w-3.5" /> Initialize Management
-                        Review
+                        <Plus className="h-4 w-4" /> Add Management Report
                       </Button>
                     </div>
                   )}
