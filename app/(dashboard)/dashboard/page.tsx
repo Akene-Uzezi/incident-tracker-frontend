@@ -22,7 +22,6 @@ import { toast } from "sonner";
 import {
   ChevronLeft,
   ChevronRight,
-  Loader2,
   Calendar,
   Clock,
   MapPin,
@@ -273,7 +272,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (selectedIncident) {
-      // Both admins and general users check if a management report exists
       fetchManagementReport(selectedIncident.id);
 
       if (isAdmin) {
@@ -408,26 +406,26 @@ export default function Dashboard() {
   const getSeverityBadgeClass = (severity: SeverityLevel) => {
     switch (severity) {
       case "critical":
-        return "bg-red-100 text-red-800 border border-red-200";
+        return "bg-red-50 text-red-700 border border-red-200/60";
       case "major":
-        return "bg-orange-100 text-orange-800 border border-orange-200";
+        return "bg-orange-50 text-orange-700 border border-orange-200/60";
       case "minor":
-        return "bg-blue-100 text-blue-800 border border-blue-200";
+        return "bg-blue-50 text-blue-700 border border-blue-200/60";
       case "near miss":
-        return "bg-gray-100 text-gray-800 border border-gray-200";
+        return "bg-zinc-50 text-zinc-600 border border-zinc-200/60";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-zinc-50 text-zinc-600";
     }
   };
 
   const getStatusBadgeClass = (status: IncidentStatus) => {
     switch (status) {
       case "resolved":
-        return "bg-emerald-100 text-emerald-800 border border-emerald-200";
+        return "bg-emerald-50 text-emerald-700 border border-emerald-200/60";
       case "inprogress":
-        return "bg-amber-100 text-amber-800 border border-amber-200";
+        return "bg-amber-50 text-amber-700 border border-amber-200/60";
       default:
-        return "bg-rose-100 text-rose-800 border border-rose-200";
+        return "bg-rose-50 text-rose-700 border border-rose-200/60";
     }
   };
 
@@ -442,84 +440,109 @@ export default function Dashboard() {
       <Card className="border-muted/40 shadow-sm rounded-xl">
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b gap-4">
           <div>
-            <CardTitle className="text-xl font-black uppercase tracking-tight text-foreground">
-              Hospital Incident Core Registry Logs
+            <CardTitle className="text-xl font-bold tracking-tight text-foreground">
+              Hospital Incident Logs
             </CardTitle>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Internal directory of logged safety events, risk evaluations, and
-              institutional metrics
+              institutional metrics.
             </p>
           </div>
         </CardHeader>
         <CardContent className="pt-6 px-0 sm:px-6">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-2">
-              <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-              <p className="text-xs font-bold uppercase text-muted-foreground tracking-wider animate-pulse">
-                Synchronizing data matrix parameters...
-              </p>
-            </div>
-          ) : incidents.length === 0 ? (
-            <div className="text-center py-16 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              No reported incident files found matching your profile.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="overflow-x-auto border rounded-lg">
-                <Table>
-                  <TableHeader className="bg-muted/40">
+          <div className="space-y-4">
+            <div className="overflow-x-auto border rounded-lg">
+              <Table>
+                <TableHeader className="bg-muted/40">
+                  <TableRow>
+                    <TableHead className="font-semibold text-sm text-foreground py-3 pl-4">
+                      Date
+                    </TableHead>
+                    <TableHead className="font-semibold text-sm text-foreground py-3">
+                      Reporter
+                    </TableHead>
+                    <TableHead className="font-semibold text-sm text-foreground py-3">
+                      Incident Ward / Dept
+                    </TableHead>
+                    <TableHead className="font-semibold text-sm text-foreground py-3">
+                      Cause Group
+                    </TableHead>
+                    <TableHead className="font-semibold text-sm text-foreground py-3">
+                      Severity Matrix
+                    </TableHead>
+                    <TableHead className="font-semibold text-sm text-foreground py-3">
+                      Status
+                    </TableHead>
+                    <TableHead className="text-right font-semibold text-sm text-foreground py-3 pr-4">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    // Skeleton rows placeholder block
+                    Array.from({ length: 5 }).map((_, idx) => (
+                      <TableRow key={idx} className="animate-pulse">
+                        <TableCell className="py-4 pl-4">
+                          <div className="h-4 bg-muted rounded w-20" />
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="h-4 bg-muted rounded w-28" />
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="h-4 bg-muted rounded w-24" />
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="h-4 bg-muted rounded w-36" />
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="h-5 bg-muted rounded w-16" />
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="h-5 bg-muted rounded w-20" />
+                        </TableCell>
+                        <TableCell className="py-4 pr-4 text-right">
+                          <div className="h-7 bg-muted rounded w-16 ml-auto" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : incidents.length === 0 ? (
                     <TableRow>
-                      <TableHead className="font-bold text-xs uppercase text-foreground py-3 pl-4">
-                        Date
-                      </TableHead>
-                      <TableHead className="font-bold text-xs uppercase text-foreground py-3">
-                        Reporter
-                      </TableHead>
-                      <TableHead className="font-bold text-xs uppercase text-foreground py-3">
-                        Incident Ward/Dept
-                      </TableHead>
-                      <TableHead className="font-bold text-xs uppercase text-foreground py-3">
-                        Cause Group
-                      </TableHead>
-                      <TableHead className="font-bold text-xs uppercase text-foreground py-3">
-                        Severity Matrix
-                      </TableHead>
-                      <TableHead className="font-bold text-xs uppercase text-foreground py-3">
-                        Status
-                      </TableHead>
-                      <TableHead className="text-right font-bold text-xs uppercase text-foreground py-3 pr-4">
-                        Action Matrix
-                      </TableHead>
+                      <TableCell
+                        colSpan={7}
+                        className="text-center py-16 text-sm text-muted-foreground"
+                      >
+                        No reported incident files found matching your profile.
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {incidents.map((incident) => (
+                  ) : (
+                    incidents.map((incident) => (
                       <TableRow
                         key={incident.id}
                         className="hover:bg-muted/20 transition-colors"
                       >
-                        <TableCell className="font-semibold text-xs whitespace-nowrap py-3 pl-4">
+                        <TableCell className="text-sm whitespace-nowrap py-3 pl-4 text-muted-foreground">
                           {incident.dateOfIncident}
                         </TableCell>
-                        <TableCell className="text-xs font-medium whitespace-nowrap py-3">
+                        <TableCell className="text-sm font-medium whitespace-nowrap py-3">
                           {incident.reporterName}
                         </TableCell>
-                        <TableCell className="text-xs font-semibold uppercase py-3">
+                        <TableCell className="text-sm py-3 text-muted-foreground">
                           {incident.incidentWardDept}
                         </TableCell>
-                        <TableCell className="max-w-[200px] text-xs font-medium truncate py-3">
+                        <TableCell className="max-w-[200px] text-sm truncate py-3 font-medium">
                           {incident.causeGroup}
                         </TableCell>
                         <TableCell className="py-3">
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getSeverityBadgeClass(incident.severityLevel)}`}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getSeverityBadgeClass(incident.severityLevel)}`}
                           >
                             {incident.severityLevel}
                           </span>
                         </TableCell>
                         <TableCell className="py-3">
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(incident.incidentStatus)}`}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusBadgeClass(incident.incidentStatus)}`}
                           >
                             {formatStatusText(incident.incidentStatus)}
                           </span>
@@ -529,50 +552,50 @@ export default function Dashboard() {
                             variant="outline"
                             size="sm"
                             onClick={() => setSelectedIncident(incident)}
-                            className="font-bold text-xs uppercase h-7 px-3 flex items-center gap-1"
+                            className="text-xs h-8 px-3 flex items-center gap-1.5 ml-auto"
                           >
-                            <Eye className="h-3 w-3" /> Details
+                            <Eye className="h-3.5 w-3.5" /> View
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {pagination && pagination.total_pages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 px-1">
-                  <div className="text-[11px] font-bold uppercase text-muted-foreground">
-                    Total: {pagination.total_items} institutional safety records
-                    compiled
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="h-7 w-7"
-                    >
-                      <ChevronLeft className="h-3.5 w-3.5" />
-                    </Button>
-                    <span className="text-xs font-bold px-2">
-                      Page {pagination.current_page} of {pagination.total_pages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                      disabled={currentPage === pagination.total_pages}
-                      className="h-7 w-7"
-                    >
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
-          )}
+
+            {!loading && pagination && pagination.total_pages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 px-1">
+                <div className="text-sm text-muted-foreground">
+                  Total: {pagination.total_items} institutional safety records
+                  compiled
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="h-8 w-8"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm px-2">
+                    Page {pagination.current_page} of {pagination.total_pages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === pagination.total_pages}
+                    className="h-8 w-8"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -586,23 +609,23 @@ export default function Dashboard() {
               <DialogHeader className="border-b pb-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <DialogTitle className="text-xl font-black uppercase tracking-tight text-foreground flex items-center gap-2">
+                    <DialogTitle className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
                       <FileText className="h-5 w-5 text-emerald-600" />
-                      Hospital Incident dossier file #{selectedIncident.id}
+                      Hospital Incident File #{selectedIncident.id}
                     </DialogTitle>
-                    <DialogDescription className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-1">
+                    <DialogDescription className="text-sm text-muted-foreground mt-1">
                       Comprehensive clinical statements, site diagnostics, and
-                      administrative report alignment matrix.
+                      administrative report alignments.
                     </DialogDescription>
                   </div>
                   {isAdmin ? (
-                    <div className="flex flex-wrap items-center gap-3 shrink-0 bg-muted/50 p-2 rounded-lg border text-xs">
+                    <div className="flex flex-wrap items-center gap-3 shrink-0 bg-muted/50 p-2 rounded-lg border text-sm">
                       <div className="flex items-center gap-2">
                         <label
                           htmlFor="status-select"
-                          className="text-[10px] font-black uppercase tracking-wider text-muted-foreground"
+                          className="text-xs font-medium text-muted-foreground"
                         >
-                          MANAGE REGISTRY STATUS:
+                          Manage Status:
                         </label>
                         <select
                           id="status-select"
@@ -611,13 +634,13 @@ export default function Dashboard() {
                           onChange={(e) =>
                             handleStatusChange(e.target.value as IncidentStatus)
                           }
-                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border focus:outline-none focus:ring-1 cursor-pointer disabled:opacity-50 ${getStatusBadgeClass(selectedIncident.incidentStatus)}`}
+                          className={`text-xs font-medium px-2.5 py-1 rounded-md border focus:outline-none focus:ring-1 cursor-pointer disabled:opacity-50 ${getStatusBadgeClass(selectedIncident.incidentStatus)}`}
                         >
                           {VALID_STATUSES.map((st) => (
                             <option
                               key={st.value}
                               value={st.value}
-                              className="bg-background text-foreground font-medium uppercase tracking-normal"
+                              className="bg-background text-foreground font-medium"
                             >
                               {st.label}
                             </option>
@@ -626,79 +649,102 @@ export default function Dashboard() {
                       </div>
                       <div className="h-4 w-px bg-muted hidden sm:block" />
                       <span
-                        className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${getSeverityBadgeClass(selectedIncident.severityLevel)}`}
+                        className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium capitalize ${getSeverityBadgeClass(selectedIncident.severityLevel)}`}
                       >
-                        {selectedIncident.severityLevel} Level
+                        {selectedIncident.severityLevel} severity
                       </span>
                     </div>
                   ) : (
                     <span
-                      className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${getSeverityBadgeClass(selectedIncident.severityLevel)}`}
+                      className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium capitalize ${getSeverityBadgeClass(selectedIncident.severityLevel)}`}
                     >
-                      {selectedIncident.severityLevel} Level
+                      {selectedIncident.severityLevel} severity
                     </span>
                   )}
                 </div>
               </DialogHeader>
 
-              {/* Complete Incident Record Visualizations Mapping to Go Struct */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-1 bg-muted/20 p-5 rounded-xl border space-y-5">
                   <div>
-                    <h3 className="text-xs font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider border-b pb-2 mb-3 flex items-center gap-1">
-                      <User className="h-3.5 w-3.5" /> REPORTER DETAILS
+                    <h3 className="text-sm font-semibold text-foreground border-b pb-2 mb-3 flex items-center gap-1.5">
+                      <User className="h-4 w-4 text-emerald-600" /> Reporter
+                      Details
                     </h3>
-                    <div className="space-y-3 text-xs">
+                    <div className="space-y-3 text-sm text-muted-foreground">
                       <p>
-                        <strong>Reporter Name:</strong>{" "}
+                        <strong className="text-foreground font-medium">
+                          Reporter Name:
+                        </strong>{" "}
                         {selectedIncident.reporterName}
                       </p>
-                      <p className="capitalize">
-                        <strong>Designation:</strong>{" "}
+                      <p>
+                        <strong className="text-foreground font-medium">
+                          Designation:
+                        </strong>{" "}
                         {selectedIncident.reporterDesignation}
                       </p>
                       <p className="break-all">
-                        <strong>Contact Details:</strong>{" "}
+                        <strong className="text-foreground font-medium">
+                          Contact Info:
+                        </strong>{" "}
                         {selectedIncident.reporterInfo}
                       </p>
                       <p>
-                        <strong>Date Filed:</strong> {selectedIncident.date}
+                        <strong className="text-foreground font-medium">
+                          Date Filed:
+                        </strong>{" "}
+                        {selectedIncident.date}
                       </p>
                       {selectedIncident.signature && (
-                        <p className="text-[10px] font-bold text-emerald-700 flex items-center gap-1">
-                          <ShieldCheck className="h-3.5 w-3.5" /> Signature
-                          Acknowledged
+                        <p className="text-xs font-medium text-emerald-600 flex items-center gap-1">
+                          <ShieldCheck className="h-4 w-4" /> Signature
+                          acknowledged
                         </p>
                       )}
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-xs font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider border-b pb-2 mb-3 flex items-center gap-1">
-                      <Activity className="h-3.5 w-3.5" /> INCIDENT CONTEXT
+                    <h3 className="text-sm font-semibold text-foreground border-b pb-2 mb-3 flex items-center gap-1.5">
+                      <Activity className="h-4 w-4 text-emerald-600" /> Incident
+                      Context
                     </h3>
-                    <div className="space-y-3 text-xs">
-                      <p className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                        <strong>Date:</strong> {selectedIncident.dateOfIncident}
-                      </p>
-                      <p className="flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                        <strong>Time:</strong>{" "}
-                        {selectedIncident.timeOfIncident || "Unspecified"}
-                      </p>
-                      <p className="flex items-start gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="space-y-3 text-sm text-muted-foreground">
+                      <p className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground/70" />
                         <span>
-                          <strong>Location:</strong>{" "}
+                          <strong className="text-foreground font-medium">
+                            Date:
+                          </strong>{" "}
+                          {selectedIncident.dateOfIncident}
+                        </span>
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground/70" />
+                        <span>
+                          <strong className="text-foreground font-medium">
+                            Time:
+                          </strong>{" "}
+                          {selectedIncident.timeOfIncident || "Unspecified"}
+                        </span>
+                      </p>
+                      <p className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground/70 mt-0.5 shrink-0" />
+                        <span>
+                          <strong className="text-foreground font-medium">
+                            Location:
+                          </strong>{" "}
                           {selectedIncident.locationOfIncident} <br />
-                          <span className="text-[10px] font-bold text-muted-foreground">
-                            WARD/DEPT: {selectedIncident.incidentWardDept}
+                          <span className="text-xs text-muted-foreground">
+                            Ward / Dept: {selectedIncident.incidentWardDept}
                           </span>
                         </span>
                       </p>
                       <p>
-                        <strong>Near Miss:</strong>{" "}
+                        <strong className="text-foreground font-medium">
+                          Near Miss:
+                        </strong>{" "}
                         {selectedIncident.isNearMiss ? "Yes" : "No"}
                       </p>
                     </div>
@@ -706,172 +752,214 @@ export default function Dashboard() {
                 </div>
 
                 <div className="lg:col-span-2 space-y-6">
-                  {/* Principal Demographics Section */}
                   <div className="bg-background border p-5 rounded-xl shadow-sm space-y-4">
-                    <h3 className="text-xs font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider border-b pb-1 flex items-center gap-1">
-                      <User className="h-3.5 w-3.5" /> PRINCIPAL PERSON INVOLVED
-                      ({selectedIncident.principalType.toUpperCase()})
+                    <h3 className="text-sm font-semibold text-foreground border-b pb-2 flex items-center gap-1.5">
+                      <User className="h-4 w-4 text-emerald-600" /> Principal
+                      Person Involved ({selectedIncident.principalType})
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-muted-foreground">
                       <p>
-                        <strong>Name:</strong> {selectedIncident.principalName}
+                        <strong className="text-foreground font-medium">
+                          Name:
+                        </strong>{" "}
+                        {selectedIncident.principalName}
                       </p>
                       <p>
-                        <strong>Gender:</strong>{" "}
+                        <strong className="text-foreground font-medium">
+                          Gender:
+                        </strong>{" "}
                         {selectedIncident.principalGender}
                       </p>
                       <p>
-                        <strong>DOB:</strong> {selectedIncident.principalDob}
+                        <strong className="text-foreground font-medium">
+                          Date of Birth:
+                        </strong>{" "}
+                        {selectedIncident.principalDob}
                       </p>
                       <p>
-                        <strong>People Involved Context:</strong>{" "}
+                        <strong className="text-foreground font-medium">
+                          Involvement Context:
+                        </strong>{" "}
                         {selectedIncident.peopleInvolved}
                       </p>
                     </div>
 
-                    {/* Conditional Patient Specific Fields */}
                     {selectedIncident.principalType === "patient" && (
-                      <div className="mt-2 pt-3 border-t grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs bg-amber-50/20 p-3 rounded-lg border border-amber-100">
+                      <div className="mt-2 pt-3 border-t grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-amber-50/20 p-3 rounded-lg border border-amber-100">
                         <p>
-                          <strong>Patient Medical ID:</strong>{" "}
+                          <strong className="font-medium text-foreground">
+                            Patient ID:
+                          </strong>{" "}
                           {selectedIncident.patientId || "N/A"}
                         </p>
                         <p>
-                          <strong>Patient Ward/Dept:</strong>{" "}
+                          <strong className="font-medium text-foreground">
+                            Patient Ward / Dept:
+                          </strong>{" "}
                           {selectedIncident.patientWardDept || "N/A"}
                         </p>
                       </div>
                     )}
 
-                    {/* Conditional Staff Specific Fields */}
                     {selectedIncident.principalType === "staff" && (
-                      <div className="mt-2 pt-3 border-t grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-blue-50/20 p-3 rounded-lg border border-blue-100">
+                      <div className="mt-2 pt-3 border-t grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm bg-blue-50/20 p-3 rounded-lg border border-blue-100">
                         <p>
-                          <strong>Staff Job Title:</strong>{" "}
+                          <strong className="font-medium text-foreground">
+                            Job Title:
+                          </strong>{" "}
                           {selectedIncident.staffJobTitle || "N/A"}
                         </p>
                         <p>
-                          <strong>Staff Phone:</strong>{" "}
+                          <strong className="font-medium text-foreground">
+                            Phone Number:
+                          </strong>{" "}
                           {selectedIncident.staffPhone || "N/A"}
                         </p>
                         <p>
-                          <strong>Place of Work:</strong>{" "}
+                          <strong className="font-medium text-foreground">
+                            Place of Work:
+                          </strong>{" "}
                           {selectedIncident.staffPlaceOfWork || "N/A"}
                         </p>
                         <p>
-                          <strong>Staff Site Location:</strong>{" "}
+                          <strong className="font-medium text-foreground">
+                            Site Location:
+                          </strong>{" "}
                           {selectedIncident.staffSite || "N/A"}
                         </p>
                       </div>
                     )}
                   </div>
 
-                  {/* Witnesses Information Matrix Block */}
                   {(selectedIncident.witnesses ||
                     selectedIncident.witnessType) && (
                     <div className="bg-background border p-5 rounded-xl shadow-sm space-y-3">
-                      <h3 className="text-xs font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider border-b pb-1 flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5" /> WITNESS LOGGED DETAILS
+                      <h3 className="text-sm font-semibold text-foreground border-b pb-2 flex items-center gap-1.5">
+                        <Users className="h-4 w-4 text-emerald-600" /> Witness
+                        Details
                       </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-muted-foreground">
                         <p>
-                          <strong>Witness Name(s):</strong>{" "}
-                          {selectedIncident.witnesses || "None Stated"}
+                          <strong className="text-foreground font-medium">
+                            Witness Name(s):
+                          </strong>{" "}
+                          {selectedIncident.witnesses || "None"}
                         </p>
                         <p>
-                          <strong>Witness Profile Type:</strong>{" "}
+                          <strong className="text-foreground font-medium">
+                            Type:
+                          </strong>{" "}
                           {selectedIncident.witnessType || "N/A"}
                         </p>
                         <p>
-                          <strong>Witness Ward/Dept:</strong>{" "}
+                          <strong className="text-foreground font-medium">
+                            Ward / Dept:
+                          </strong>{" "}
                           {selectedIncident.witnessWardDept || "N/A"}
                         </p>
                         <p>
-                          <strong>Witness Job Title:</strong>{" "}
+                          <strong className="text-foreground font-medium">
+                            Job Title:
+                          </strong>{" "}
                           {selectedIncident.witnessJobTitle || "N/A"}
                         </p>
                         <p>
-                          <strong>Witness Phone:</strong>{" "}
+                          <strong className="text-foreground font-medium">
+                            Phone:
+                          </strong>{" "}
                           {selectedIncident.witnessPhone || "N/A"}
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {/* Factual Diagnoses and Medical Evaluation */}
                   <div className="bg-background border p-5 rounded-xl shadow-sm space-y-4">
-                    <h3 className="text-xs font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider border-b pb-1 flex items-center gap-1">
-                      <Info className="h-3.5 w-3.5" /> FACTUAL DESCRIPTION &
-                      TREATMENT
+                    <h3 className="text-sm font-semibold text-foreground border-b pb-2 flex items-center gap-1.5">
+                      <Info className="h-4 w-4 text-emerald-600" /> Description
+                      & Treatment
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
                       <p>
-                        <strong>Cause Group:</strong>{" "}
-                        <span className="font-bold underline">
-                          {selectedIncident.causeGroup}
-                        </span>
+                        <strong className="text-foreground font-medium">
+                          Cause Group:
+                        </strong>{" "}
+                        {selectedIncident.causeGroup}
                       </p>
                       <p>
-                        <strong>Prescribing Doctor:</strong>{" "}
-                        {selectedIncident.prescribingDoctor ||
-                          "None Identified"}
+                        <strong className="text-foreground font-medium">
+                          Prescribing Doctor:
+                        </strong>{" "}
+                        {selectedIncident.prescribingDoctor || "None"}
                       </p>
                     </div>
-                    <div className="text-xs space-y-1">
-                      <strong className="text-muted-foreground uppercase text-[10px]">
-                        Detailed Root Causes:
-                      </strong>
-                      <div className="bg-muted/40 p-3 rounded border whitespace-pre-wrap leading-relaxed">
+                    <div className="text-sm space-y-1.5">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Root Causes
+                      </span>
+                      <div className="bg-muted/40 p-3 rounded-lg border text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
                         {selectedIncident.causes}
                       </div>
                     </div>
-                    <div className="text-xs space-y-1">
-                      <strong className="text-muted-foreground uppercase text-[10px]">
-                        Clinical Treatment Received:
-                      </strong>
-                      <div className="bg-muted/40 p-3 rounded border whitespace-pre-wrap leading-relaxed">
+                    <div className="text-sm space-y-1.5">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Treatment Received
+                      </span>
+                      <div className="bg-muted/40 p-3 rounded-lg border text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
                         {selectedIncident.treatmentReceived ||
                           "No treatment documented."}
                       </div>
                     </div>
                   </div>
 
-                  {/* Asset & Equipment Verification Node */}
                   {selectedIncident.equipmentInvolved && (
                     <div className="bg-background border p-5 rounded-xl shadow-sm space-y-3">
-                      <h3 className="text-xs font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider border-b pb-1 flex items-center gap-1">
-                        <Wrench className="h-3.5 w-3.5" /> EQUIPMENT & MEDICAL
-                        DEVICES VERIFICATION
+                      <h3 className="text-sm font-semibold text-foreground border-b pb-2 flex items-center gap-1.5">
+                        <Wrench className="h-4 w-4 text-emerald-600" />{" "}
+                        Equipment & Medical Devices
                       </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted-foreground">
                         <p>
-                          <strong>Equipment Brand/Involved:</strong>{" "}
+                          <strong className="text-foreground font-medium">
+                            Equipment Name:
+                          </strong>{" "}
                           {selectedIncident.equipmentInvolved}
                         </p>
                         <p>
-                          <strong>Model Identifier:</strong>{" "}
+                          <strong className="text-foreground font-medium">
+                            Model:
+                          </strong>{" "}
                           {selectedIncident.equipmentModel || "N/A"}
                         </p>
                         <p>
-                          <strong>Serial/Equipment Number:</strong>{" "}
+                          <strong className="text-foreground font-medium">
+                            Equipment Number:
+                          </strong>{" "}
                           {selectedIncident.equipmentNumber || "N/A"}
                         </p>
                         <p>
-                          <strong>Is Classified Medical Device:</strong>{" "}
+                          <strong className="text-foreground font-medium">
+                            Medical Device Classified:
+                          </strong>{" "}
                           {selectedIncident.isMedicalDevice || "No"}
                         </p>
                         <p>
-                          <strong>Sent For Repair:</strong>{" "}
+                          <strong className="text-foreground font-medium">
+                            Sent for Repair:
+                          </strong>{" "}
                           {selectedIncident.equipmentSentForRepair
                             ? "Yes"
                             : "No"}
                         </p>
                         <p>
-                          <strong>Withdrawn from Use:</strong>{" "}
+                          <strong className="text-foreground font-medium">
+                            Withdrawn from Use:
+                          </strong>{" "}
                           {selectedIncident.equipmentWithdrawn ? "Yes" : "No"}
                         </p>
                         <p>
-                          <strong>Retained for Investigation:</strong>{" "}
+                          <strong className="text-foreground font-medium">
+                            Retained for Investigation:
+                          </strong>{" "}
                           {selectedIncident.equipmentRetained ? "Yes" : "No"}
                         </p>
                       </div>
@@ -880,94 +968,114 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Administrative Evaluation Domain Block */}
               <div className="border-t pt-6">
-                <h2 className="text-sm font-black uppercase tracking-wider mb-4 flex items-center gap-1 text-emerald-800 dark:text-emerald-400">
-                  <ShieldCheck className="h-4 w-4" /> Administrative Evaluation
-                  Dossier
+                <h2 className="text-base font-semibold tracking-tight mb-4 flex items-center gap-2 text-foreground">
+                  <ShieldCheck className="h-5 w-5 text-emerald-600" />{" "}
+                  Administrative Evaluation Dossier
                 </h2>
 
                 {loadingManagement ? (
-                  <div className="text-center py-6 text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-center gap-2">
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Querying
-                    dossier...
+                  <div className="text-center py-6 text-sm text-muted-foreground flex items-center justify-center gap-2">
+                    <RefreshCw className="h-4 w-4 animate-spin text-emerald-600" />{" "}
+                    Loading administrative details...
                   </div>
                 ) : managementReport ? (
-                  <div className="bg-emerald-50/20 p-5 rounded-xl border border-emerald-200 grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-emerald-50/10 p-5 rounded-xl border border-emerald-200/50 grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="md:col-span-2 space-y-4">
-                      <h3 className="text-xs font-black uppercase text-emerald-900 border-b pb-1">
-                        MANAGEMENT REPORT DETAILS
+                      <h3 className="text-xs font-semibold text-emerald-800 tracking-wider uppercase border-b pb-1">
+                        Management Overview
                       </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-muted-foreground">
                         <div>
-                          <strong>Impact on Service:</strong>
-                          <p className="bg-background p-2.5 rounded border mt-1 text-xs">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Impact on Service
+                          </span>
+                          <p className="bg-background p-2.5 rounded-lg border mt-1 text-xs text-foreground">
                             {managementReport.impactOnService}
                           </p>
                         </div>
                         <div>
-                          <strong>Contributory Factors:</strong>
-                          <p className="bg-background p-2.5 rounded border mt-1 text-xs">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Contributory Factors
+                          </span>
+                          <p className="bg-background p-2.5 rounded-lg border mt-1 text-xs text-foreground">
                             {managementReport.contributoryFactors}
                           </p>
                         </div>
                         <div>
-                          <strong>Action / Outcomes:</strong>
-                          <p className="bg-background p-2.5 rounded border mt-1 text-xs">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Actions / Outcomes
+                          </span>
+                          <p className="bg-background p-2.5 rounded-lg border mt-1 text-xs text-foreground">
                             {managementReport.actionsTakenOutcomes}
                           </p>
                         </div>
                         <div>
-                          <strong>Recommendations:</strong>
-                          <p className="bg-background p-2.5 rounded border mt-1 text-xs">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Recommendations
+                          </span>
+                          <p className="bg-background p-2.5 rounded-lg border mt-1 text-xs text-foreground">
                             {managementReport.recommendations}
                           </p>
                         </div>
                         <div className="sm:col-span-2">
-                          <strong>Lessons Learned:</strong>
-                          <p className="bg-background p-2.5 rounded border mt-1 text-xs">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Lessons Learned
+                          </span>
+                          <p className="bg-background p-2.5 rounded-lg border mt-1 text-xs text-foreground">
                             {managementReport.lessonsLearned}
                           </p>
                         </div>
                       </div>
 
-                      {/* View Who Was Informed Context */}
                       <div className="pt-3 border-t space-y-2">
-                        <strong className="text-[11px] font-black uppercase text-emerald-900">
-                          Stakeholder Communication Log:
-                        </strong>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                        <span className="text-xs font-semibold text-emerald-800 tracking-wider uppercase block">
+                          Communication Metrics
+                        </span>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm text-muted-foreground">
                           <p>
-                            <strong>Patient Informed:</strong>{" "}
+                            <strong className="text-foreground font-medium">
+                              Patient Informed:
+                            </strong>{" "}
                             {managementReport.informedPatient ? "Yes" : "No"}
                           </p>
                           <p>
-                            <strong>Relative Informed:</strong>{" "}
+                            <strong className="text-foreground font-medium">
+                              Relative Informed:
+                            </strong>{" "}
                             {managementReport.informedRelative ? "Yes" : "No"}
                           </p>
                           <p>
-                            <strong>Senior Manager:</strong>{" "}
+                            <strong className="text-foreground font-medium">
+                              Senior Manager:
+                            </strong>{" "}
                             {managementReport.informedSeniorManager
                               ? "Yes"
                               : "No"}
                           </p>
                           <p>
-                            <strong>Pharmacist Informed:</strong>{" "}
+                            <strong className="text-foreground font-medium">
+                              Pharmacist Informed:
+                            </strong>{" "}
                             {managementReport.informedPharmacist ? "Yes" : "No"}
                           </p>
                         </div>
                         {(managementReport.policeIncidentNumber ||
                           managementReport.informedOther) && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground pt-1">
                             {managementReport.policeIncidentNumber && (
                               <p>
-                                <strong>Police Incident Reference:</strong>{" "}
+                                <strong className="text-foreground font-medium">
+                                  Police Incident Number:
+                                </strong>{" "}
                                 {managementReport.policeIncidentNumber}
                               </p>
                             )}
                             {managementReport.informedOther && (
                               <p>
-                                <strong>Other Notified Party:</strong>{" "}
+                                <strong className="text-foreground font-medium">
+                                  Other Party Informed:
+                                </strong>{" "}
                                 {managementReport.informedOther}
                               </p>
                             )}
@@ -975,44 +1083,55 @@ export default function Dashboard() {
                         )}
                       </div>
 
-                      {/* View OHS Block Elements */}
                       {(managementReport.ohsStaffName ||
                         managementReport.ohsAbsenceOver3Days) && (
                         <div className="pt-3 border-t space-y-2 bg-muted/30 p-3 rounded-lg border">
-                          <strong className="text-[11px] font-black uppercase text-emerald-900">
-                            Occupational Health & Safety Metrics:
-                          </strong>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                          <span className="text-xs font-semibold text-muted-foreground tracking-wider uppercase block">
+                            Occupational Health & Safety Matrix
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-muted-foreground">
                             <p>
-                              <strong>Absence &gt; 3 Days:</strong>{" "}
+                              <strong className="text-foreground font-medium">
+                                Absence &gt; 3 Days:
+                              </strong>{" "}
                               {managementReport.ohsAbsenceOver3Days
                                 ? "Yes"
                                 : "No"}
                             </p>
                             <p>
-                              <strong>Violence/Danger Act:</strong>{" "}
+                              <strong className="text-foreground font-medium">
+                                Violence / Danger:
+                              </strong>{" "}
                               {managementReport.ohsActOfViolenceOrDanger
                                 ? "Yes"
                                 : "No"}
                             </p>
                             <p>
-                              <strong>Hospitalized &gt; 24h:</strong>{" "}
+                              <strong className="text-foreground font-medium">
+                                Hospitalized &gt; 24h:
+                              </strong>{" "}
                               {managementReport.ohsHospitalizationOver24Hours
                                 ? "Yes"
                                 : "No"}
                             </p>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs pt-1">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-muted-foreground pt-1">
                             <p>
-                              <strong>OHS Staff Target:</strong>{" "}
+                              <strong className="text-foreground font-medium">
+                                Target Staff Name:
+                              </strong>{" "}
                               {managementReport.ohsStaffName || "N/A"}
                             </p>
                             <p>
-                              <strong>OHS Staff DOB:</strong>{" "}
+                              <strong className="text-foreground font-medium">
+                                Staff DOB:
+                              </strong>{" "}
                               {managementReport.ohsStaffDob || "N/A"}
                             </p>
                             <p>
-                              <strong>Staff Home Address:</strong>{" "}
+                              <strong className="text-foreground font-medium">
+                                Home Address:
+                              </strong>{" "}
                               {managementReport.ohsStaffAddress || "N/A"}
                             </p>
                           </div>
@@ -1020,73 +1139,75 @@ export default function Dashboard() {
                       )}
                     </div>
 
-                    {/* Authorized Signing Summary Block */}
-                    <div className="space-y-4 border-l pl-0 md:pl-6 border-emerald-200/60 flex flex-col justify-between">
+                    <div className="space-y-4 border-l pl-0 md:pl-6 border-emerald-100 flex flex-col justify-between">
                       <div className="space-y-3">
-                        <div className="bg-background p-3 rounded border text-xs">
-                          <p className="font-extrabold text-emerald-800 uppercase tracking-tight">
-                            Risk Severity Rating:{" "}
+                        <div className="bg-background p-3 rounded-lg border text-sm text-muted-foreground space-y-1.5">
+                          <p>
+                            <strong className="text-foreground font-medium">
+                              Risk Severity Score:
+                            </strong>{" "}
                             {managementReport.riskSeverity} / 5
                           </p>
-                          <p className="font-extrabold text-emerald-800 uppercase tracking-tight">
-                            Risk Likelihood Rating:{" "}
+                          <p>
+                            <strong className="text-foreground font-medium">
+                              Risk Likelihood Score:
+                            </strong>{" "}
                             {managementReport.riskLikelihood} / 5
                           </p>
-                          <div className="mt-2 pt-2 border-t font-black text-xs text-rose-700">
-                            Unified Risk Matrix Product:{" "}
+                          <div className="mt-2 pt-2 border-t font-semibold text-rose-600">
+                            Combined Risk Product Rating:{" "}
                             {managementReport.riskRating}
                           </div>
                         </div>
                       </div>
-                      <div className="text-[11px] bg-emerald-800 text-white p-4 rounded-xl space-y-1.5 shadow-sm">
-                        <p className="font-bold text-xs border-b border-white/20 pb-1 mb-1">
-                          SIGN-OFF METRICS
-                        </p>
-                        <p>
+                      <div className="text-sm bg-emerald-800 text-white p-4 rounded-xl space-y-2 shadow-sm">
+                        <span className="text-xs font-semibold tracking-wider uppercase block border-b border-white/20 pb-1">
+                          Sign-Off Status
+                        </span>
+                        <p className="text-white/90">
                           <strong>Manager Name:</strong>{" "}
                           {managementReport.managerName}
                         </p>
-                        <p>
+                        <p className="text-white/90">
                           <strong>Designation:</strong>{" "}
                           {managementReport.managerDesignation}
                         </p>
-                        <p>
+                        <p className="text-white/90">
                           <strong>Authorization Date:</strong>{" "}
                           {managementReport.managerDate}
                         </p>
-                        <p className="text-[9px] font-black bg-emerald-950 px-1.5 py-0.5 rounded text-emerald-300 inline-block mt-1">
-                          ✓ SIGNATURE COMPLIANT
-                        </p>
+                        <span className="text-[10px] font-semibold bg-emerald-950 px-2 py-0.5 rounded text-emerald-300 inline-block mt-1">
+                          ✓ Verified Signature
+                        </span>
                       </div>
                     </div>
                   </div>
                 ) : isAdmin && !isAddingManagement ? (
-                  /* Form Option ONLY Rendered if Current Authenticated User is Admin */
-                  <div className="text-center py-8 border-2 border-dashed rounded-xl bg-muted/10">
-                    <p className="text-xs font-bold text-muted-foreground mb-3 uppercase">
-                      No administrative report attached to this dossier yet.
+                  <div className="text-center py-8 border border-dashed rounded-xl bg-muted/10">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      No administrative management report has been generated for
+                      this record.
                     </p>
                     <Button
                       size="sm"
                       onClick={() => setIsAddingManagement(true)}
+                      className="text-xs h-8"
                     >
-                      <Plus className="h-3.5 w-3.5 mr-1.5" /> Add Report Form
-                      Matrix
+                      <Plus className="h-4 w-4 mr-1" /> Add Management Report
                     </Button>
                   </div>
                 ) : isAdmin && isAddingManagement ? (
-                  /* Fully Complete Managerial Form Submission Segment containing all fields */
                   <form
                     onSubmit={handleManagementSubmit}
                     className="bg-muted/40 p-5 rounded-xl border space-y-6"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-4">
-                        <h3 className="text-xs font-black uppercase text-emerald-800 border-b pb-1">
-                          MANAGEMENT REPORT CLINICAL MATRIX
+                        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1">
+                          Operational Evaluation Metrics
                         </h3>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
+                          <label className="text-xs font-medium text-foreground">
                             Impact on Service *
                           </label>
                           <textarea
@@ -1098,11 +1219,11 @@ export default function Dashboard() {
                                 impactOnService: e.target.value,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-16"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-16 focus:ring-1 focus:outline-none"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
+                          <label className="text-xs font-medium text-foreground">
                             Contributory Factors *
                           </label>
                           <textarea
@@ -1114,11 +1235,11 @@ export default function Dashboard() {
                                 contributoryFactors: e.target.value,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-16"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-16 focus:ring-1 focus:outline-none"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
+                          <label className="text-xs font-medium text-foreground">
                             Lessons Learned *
                           </label>
                           <textarea
@@ -1130,16 +1251,16 @@ export default function Dashboard() {
                                 lessonsLearned: e.target.value,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-16"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-16 focus:ring-1 focus:outline-none"
                           />
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <h3 className="text-xs font-black uppercase text-emerald-800 border-b pb-1">
-                          ACTIONS, REMEDIAL PLANS & OUTCOMES
+                        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1">
+                          Remedial Action Strategies
                         </h3>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
+                          <label className="text-xs font-medium text-foreground">
                             Actions / Outcomes *
                           </label>
                           <textarea
@@ -1151,11 +1272,11 @@ export default function Dashboard() {
                                 actionsTakenOutcomes: e.target.value,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-16"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-16 focus:ring-1 focus:outline-none"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
+                          <label className="text-xs font-medium text-foreground">
                             Recommendations *
                           </label>
                           <textarea
@@ -1167,19 +1288,18 @@ export default function Dashboard() {
                                 recommendations: e.target.value,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-16"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-16 focus:ring-1 focus:outline-none"
                           />
                         </div>
                       </div>
                     </div>
 
-                    {/* Communication Array Segment */}
                     <div className="border-t pt-6 space-y-4">
-                      <h3 className="text-xs font-black uppercase text-emerald-800 border-b pb-1">
-                        COMMUNICATION & NOTIFICATIONS INDEX
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1">
+                        Stakeholder Notifications Log
                       </h3>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <label className="flex items-center gap-2 cursor-pointer text-muted-foreground">
                           <input
                             type="checkbox"
                             checked={mgmtForm.informedPatient}
@@ -1189,10 +1309,11 @@ export default function Dashboard() {
                                 informedPatient: e.target.checked,
                               })
                             }
+                            className="rounded accent-emerald-600"
                           />
                           Patient Informed
                         </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <label className="flex items-center gap-2 cursor-pointer text-muted-foreground">
                           <input
                             type="checkbox"
                             checked={mgmtForm.informedRelative}
@@ -1202,10 +1323,11 @@ export default function Dashboard() {
                                 informedRelative: e.target.checked,
                               })
                             }
+                            className="rounded accent-emerald-600"
                           />
                           Relative Informed
                         </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <label className="flex items-center gap-2 cursor-pointer text-muted-foreground">
                           <input
                             type="checkbox"
                             checked={mgmtForm.informedSeniorManager}
@@ -1215,10 +1337,11 @@ export default function Dashboard() {
                                 informedSeniorManager: e.target.checked,
                               })
                             }
+                            className="rounded accent-emerald-600"
                           />
                           Senior Manager Notified
                         </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <label className="flex items-center gap-2 cursor-pointer text-muted-foreground">
                           <input
                             type="checkbox"
                             checked={mgmtForm.informedPharmacist}
@@ -1228,13 +1351,14 @@ export default function Dashboard() {
                                 informedPharmacist: e.target.checked,
                               })
                             }
+                            className="rounded accent-emerald-600"
                           />
                           Pharmacist Informed
                         </label>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
+                          <label className="text-xs font-medium text-foreground">
                             Police Incident Number
                           </label>
                           <input
@@ -1246,11 +1370,11 @@ export default function Dashboard() {
                                 policeIncidentNumber: e.target.value,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-8"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-9 focus:ring-1 focus:outline-none"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
+                          <label className="text-xs font-medium text-foreground">
                             Other Informed Parties
                           </label>
                           <input
@@ -1262,21 +1386,20 @@ export default function Dashboard() {
                                 informedOther: e.target.value,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-8"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-9 focus:ring-1 focus:outline-none"
                           />
                         </div>
                       </div>
                     </div>
 
-                    {/* Complete Risk Analysis Mapping */}
                     <div className="border-t pt-6 space-y-4">
-                      <h3 className="text-xs font-black uppercase text-emerald-800 border-b pb-1">
-                        QUANTITATIVE RISK FACTOR ASSESSMENT
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1">
+                        Risk Factor Assessment Rating
                       </h3>
                       <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
-                            Severity (1-5) *
+                          <label className="text-xs font-medium text-foreground">
+                            Severity Rank (1-5) *
                           </label>
                           <input
                             type="number"
@@ -1290,12 +1413,12 @@ export default function Dashboard() {
                                 riskSeverity: parseInt(e.target.value) || 1,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-8"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-9 focus:ring-1 focus:outline-none"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
-                            Likelihood (1-5) *
+                          <label className="text-xs font-medium text-foreground">
+                            Likelihood Rank (1-5) *
                           </label>
                           <input
                             type="number"
@@ -1309,30 +1432,29 @@ export default function Dashboard() {
                                 riskLikelihood: parseInt(e.target.value) || 1,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-8"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-9 focus:ring-1 focus:outline-none"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
-                            Calculated Matrix Rating (Auto)
+                          <label className="text-xs font-medium text-foreground">
+                            Calculated Rating Product
                           </label>
                           <input
                             type="number"
                             readOnly
                             value={mgmtForm.riskRating}
-                            className="w-full text-xs bg-muted border rounded p-2 h-8 font-bold text-rose-700"
+                            className="w-full text-xs bg-muted border rounded-md p-2 h-9 font-semibold text-rose-600 focus:outline-none"
                           />
                         </div>
                       </div>
                     </div>
 
-                    {/* Occupational Health and Safety Parameters Segment */}
                     <div className="border-t pt-6 space-y-4">
-                      <h3 className="text-xs font-black uppercase text-emerald-800 border-b pb-1">
-                        OCCUPATIONAL HEALTH & SAFETY REGULATORY COMPLIANCE
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1">
+                        Occupational Health & Safety Regulatory Compliance
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <label className="flex items-center gap-2 cursor-pointer text-muted-foreground">
                           <input
                             type="checkbox"
                             checked={mgmtForm.ohsAbsenceOver3Days}
@@ -1342,10 +1464,11 @@ export default function Dashboard() {
                                 ohsAbsenceOver3Days: e.target.checked,
                               })
                             }
+                            className="rounded accent-emerald-600"
                           />
                           Staff Absence Over 3 Days
                         </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <label className="flex items-center gap-2 cursor-pointer text-muted-foreground">
                           <input
                             type="checkbox"
                             checked={mgmtForm.ohsActOfViolenceOrDanger}
@@ -1355,10 +1478,11 @@ export default function Dashboard() {
                                 ohsActOfViolenceOrDanger: e.target.checked,
                               })
                             }
+                            className="rounded accent-emerald-600"
                           />
                           Act of Violence or Peril Danger
                         </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <label className="flex items-center gap-2 cursor-pointer text-muted-foreground">
                           <input
                             type="checkbox"
                             checked={mgmtForm.ohsHospitalizationOver24Hours}
@@ -1368,14 +1492,15 @@ export default function Dashboard() {
                                 ohsHospitalizationOver24Hours: e.target.checked,
                               })
                             }
+                            className="rounded accent-emerald-600"
                           />
                           Hospitalization &gt; 24 Hours
                         </label>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
-                            OHS Target Staff Name
+                          <label className="text-xs font-medium text-foreground">
+                            OHS Impacted Staff Name
                           </label>
                           <input
                             type="text"
@@ -1386,11 +1511,11 @@ export default function Dashboard() {
                                 ohsStaffName: e.target.value,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-8"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-9 focus:ring-1 focus:outline-none"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
+                          <label className="text-xs font-medium text-foreground">
                             Staff Date of Birth
                           </label>
                           <input
@@ -1402,11 +1527,11 @@ export default function Dashboard() {
                                 ohsStaffDob: e.target.value,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-8"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-9 focus:ring-1 focus:outline-none"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
+                          <label className="text-xs font-medium text-foreground">
                             Staff Home Address
                           </label>
                           <input
@@ -1418,20 +1543,19 @@ export default function Dashboard() {
                                 ohsStaffAddress: e.target.value,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-8"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-9 focus:ring-1 focus:outline-none"
                           />
                         </div>
                       </div>
                     </div>
 
-                    {/* Authorized Signing Segments mapping perfectly to Go binding tags */}
                     <div className="border-t pt-6 space-y-4">
-                      <h3 className="text-xs font-black uppercase text-emerald-800 border-b pb-1">
-                        EXECUTIVE MANAGER AUTHORIZATION
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1">
+                        Executive Authorization Sign-Off
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
+                          <label className="text-xs font-medium text-foreground">
                             Manager Name *
                           </label>
                           <input
@@ -1444,12 +1568,12 @@ export default function Dashboard() {
                                 managerName: e.target.value,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-8"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-9 focus:ring-1 focus:outline-none"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
-                            Official Corporate Designation *
+                          <label className="text-xs font-medium text-foreground">
+                            Corporate Designation *
                           </label>
                           <input
                             type="text"
@@ -1461,12 +1585,12 @@ export default function Dashboard() {
                                 managerDesignation: e.target.value,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-8"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-9 focus:ring-1 focus:outline-none"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase">
-                            Signing Authorization Date *
+                          <label className="text-xs font-medium text-foreground">
+                            Authorization Date *
                           </label>
                           <input
                             type="date"
@@ -1478,7 +1602,7 @@ export default function Dashboard() {
                                 managerDate: e.target.value,
                               })
                             }
-                            className="w-full text-xs bg-background border rounded p-2 h-8"
+                            className="w-full text-xs bg-background border rounded-md p-2 h-9 focus:ring-1 focus:outline-none"
                           />
                         </div>
                         <div className="flex items-end">
@@ -1493,8 +1617,9 @@ export default function Dashboard() {
                                   managerSignature: e.target.checked,
                                 })
                               }
+                              className="rounded accent-emerald-600"
                             />
-                            <span className="font-bold uppercase text-rose-700">
+                            <span className="font-medium text-rose-600">
                               Acknowledge Legal Signature Binding *
                             </span>
                           </label>
@@ -1507,22 +1632,22 @@ export default function Dashboard() {
                         type="button"
                         variant="ghost"
                         onClick={() => setIsAddingManagement(false)}
+                        className="text-xs h-9"
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
                         disabled={submittingManagement}
-                        className="bg-emerald-600 font-bold uppercase text-xs tracking-wider"
+                        className="bg-emerald-600 text-white font-medium text-xs h-9"
                       >
                         Save Management Log
                       </Button>
                     </div>
                   </form>
                 ) : (
-                  /* Message displayed for regular users if no report is present */
                   <div className="text-center py-6">
-                    <p className="text-xs font-bold text-muted-foreground uppercase">
+                    <p className="text-sm text-muted-foreground">
                       No management report has been registered for this
                       incident.
                     </p>
