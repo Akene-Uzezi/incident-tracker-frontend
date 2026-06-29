@@ -1,0 +1,2 @@
+update the details modal to show the complete details and the form to 
+show the complete form(manger's form)
