@@ -40,6 +40,7 @@ export function AdminManagementForm({
     );
   }
 
+  // 1. Any user can view the management report if it exists
   if (managementReport) {
     return (
       <div className="bg-emerald-50/10 p-5 rounded-xl border border-emerald-200/50 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -239,6 +240,7 @@ export function AdminManagementForm({
     );
   }
 
+  // 2. Only Admins can see the creation/empty prompt button if no report exists
   if (isAdmin && !isAddingManagement) {
     return (
       <div className="text-center py-8 border border-dashed rounded-xl bg-muted/10">
@@ -253,13 +255,13 @@ export function AdminManagementForm({
     );
   }
 
+  // 3. Only Admins can see and access the configuration form layout
   if (isAdmin && isAddingManagement) {
     return (
       <form
         onSubmit={onSubmit}
         className="bg-muted/40 p-5 rounded-xl border space-y-6"
       >
-        {/* Operational Evaluation + Remedial Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1">
@@ -348,7 +350,6 @@ export function AdminManagementForm({
           </div>
         </div>
 
-        {/* Stakeholder Notifications */}
         <div className="border-t pt-6 space-y-4">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1">
             Stakeholder Notifications Log
@@ -356,22 +357,13 @@ export function AdminManagementForm({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             {(
               [
-                {
-                  key: "informedPatient",
-                  label: "Patient Informed",
-                },
-                {
-                  key: "informedRelative",
-                  label: "Relative Informed",
-                },
+                { key: "informedPatient", label: "Patient Informed" },
+                { key: "informedRelative", label: "Relative Informed" },
                 {
                   key: "informedSeniorManager",
                   label: "Senior Manager Notified",
                 },
-                {
-                  key: "informedPharmacist",
-                  label: "Pharmacist Informed",
-                },
+                { key: "informedPharmacist", label: "Pharmacist Informed" },
               ] as const
             ).map(({ key, label }) => (
               <label
@@ -423,7 +415,6 @@ export function AdminManagementForm({
           </div>
         </div>
 
-        {/* Risk Assessment */}
         <div className="border-t pt-6 space-y-4">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1">
             Risk Factor Assessment Rating
@@ -481,7 +472,6 @@ export function AdminManagementForm({
           </div>
         </div>
 
-        {/* OHS */}
         <div className="border-t pt-6 space-y-4">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1">
             Occupational Health & Safety Regulatory Compliance
@@ -554,10 +544,7 @@ export function AdminManagementForm({
                 type="text"
                 value={mgmtForm.ohsStaffAddress}
                 onChange={(e) =>
-                  onFormChange({
-                    ...mgmtForm,
-                    ohsStaffAddress: e.target.value,
-                  })
+                  onFormChange({ ...mgmtForm, ohsStaffAddress: e.target.value })
                 }
                 className="w-full text-xs bg-background border rounded-md p-2 h-9 focus:ring-1 focus:outline-none"
               />
@@ -565,7 +552,6 @@ export function AdminManagementForm({
           </div>
         </div>
 
-        {/* Sign-Off */}
         <div className="border-t pt-6 space-y-4">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1">
             Executive Authorization Sign-Off
@@ -659,7 +645,7 @@ export function AdminManagementForm({
     );
   }
 
-  // Non-admin, no report
+  // 4. Fallback for non-admins if no report is filed yet
   return (
     <div className="text-center py-6">
       <p className="text-sm text-muted-foreground">
