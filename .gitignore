@@ -44,3 +44,6 @@ output.s
 
 #images for kilocode
 kiloimages/
+
+#report document
+reportform.docx
