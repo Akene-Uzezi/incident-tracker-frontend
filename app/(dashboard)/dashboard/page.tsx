@@ -64,7 +64,14 @@ export default function Dashboard() {
 
   const router = useRouter();
 
+  // Strict check for core administrators
   const isAdmin = user.role === "admin" || user.role === "superadmin";
+
+  // Expanded write clearance for managing/submitting documentation logs
+  const canManageReport =
+    user.role === "admin" ||
+    user.role === "superadmin" ||
+    user.role === "manager";
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -161,7 +168,7 @@ export default function Dashboard() {
     if (selectedIncident) {
       fetchManagementReport(selectedIncident.id);
 
-      if (isAdmin) {
+      if (canManageReport) {
         setMgmtForm({
           ...DEFAULT_MGMT_FORM,
           ohsStaffName:
@@ -179,7 +186,7 @@ export default function Dashboard() {
       setManagementReport(null);
       setIsAddingManagement(false);
     }
-  }, [selectedIncident, isAdmin]);
+  }, [selectedIncident, canManageReport]);
 
   useEffect(() => {
     const sev = mgmtForm.riskSeverity || 1;
@@ -234,7 +241,7 @@ export default function Dashboard() {
 
   const handleManagementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedIncident || !isAdmin) return;
+    if (!selectedIncident || !canManageReport) return;
 
     setSubmittingManagement(true);
     const token = localStorage.getItem("token");
@@ -297,7 +304,8 @@ export default function Dashboard() {
 
       <IncidentDetails
         incident={selectedIncident}
-        isAdmin={isAdmin}
+        isAdmin={canManageReport}
+        userRole={user.role}
         updatingStatus={updatingStatus}
         loadingManagement={loadingManagement}
         managementReport={managementReport}

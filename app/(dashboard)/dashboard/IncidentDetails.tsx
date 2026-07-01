@@ -32,6 +32,7 @@ import { AdminManagementForm } from "./AdminManagementForm";
 interface IncidentDetailsProps {
   incident: IncidentReport | null;
   isAdmin: boolean;
+  userRole?: string;
   updatingStatus: boolean;
   loadingManagement: boolean;
   managementReport: IncidentManagement | null;
@@ -49,6 +50,7 @@ interface IncidentDetailsProps {
 export function IncidentDetails({
   incident,
   isAdmin,
+  userRole,
   updatingStatus,
   loadingManagement,
   managementReport,
@@ -62,6 +64,9 @@ export function IncidentDetails({
   onStartAdding,
   onCancelAdding,
 }: IncidentDetailsProps) {
+  // Check if the current user is strictly a core Admin/Superadmin for status management
+  const isCoreAdmin = userRole === "admin" || userRole === "superadmin";
+
   return (
     <Dialog open={!!incident} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="!max-w-7xl !w-[95vw] max-h-[92vh] overflow-y-auto p-6 md:p-8 rounded-xl border shadow-2xl bg-background">
@@ -81,7 +86,7 @@ export function IncidentDetails({
                   </DialogDescription>
                 </div>
 
-                {isAdmin ? (
+                {isCoreAdmin ? (
                   <div className="flex flex-wrap items-center gap-3 shrink-0 bg-muted/50 p-2 rounded-lg border text-sm">
                     <div className="flex items-center gap-2">
                       <label
