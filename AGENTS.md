@@ -229,6 +229,79 @@ export interface IncidentManagement {
 
 ## Component Usage
 
+### Dashboard Components
+
+#### IncidentDetails Modal
+The incident details dialog displays comprehensive incident information and management forms. Located at `app/(dashboard)/dashboard/IncidentDetails.tsx`.
+
+**Features:**
+- **Header Section**: Shows incident ID (#`{incident.id}`), severity level badge, and status selector (admin only)
+- **Left Sidebar**: Reporter details including name, designation, contact info, date filed, and signature status
+- **Right Content Area**:
+  - Principal Person Involved section with type-specific fields (patient/staff/consultant/other)
+  - Witness Details section (when witnesses exist)
+  - Description & Treatment section showing cause group, prescribing doctor, root causes, and treatment received
+  - Equipment section (when equipment involved) showing model, serial number, and disposition
+- **Admin Management Section**: Contains the `AdminManagementForm` component for follow-up reports
+
+**Props Interface:**
+```typescript
+interface IncidentDetailsProps {
+  incident: IncidentReport | null;
+  isAdmin: boolean;
+  updatingStatus: boolean;
+  loadingManagement: boolean;
+  managementReport: IncidentManagement | null;
+  isAddingManagement: boolean;
+  submittingManagement: boolean;
+  mgmtForm: Partial<IncidentManagement>;
+  onClose: () => void;
+  onStatusChange: (status: IncidentStatus) => void;
+  onFormChange: (updated: Partial<IncidentManagement>) => void;
+  onManagementSubmit: (e: React.FormEvent) => void;
+  onStartAdding: () => void;
+  onCancelAdding: () => void;
+}
+```
+
+#### AdminManagementForm
+The management report form for creating/updating incident follow-up documentation. Located at `app/(dashboard)/dashboard/AdminManagementForm.tsx`.
+
+**Display States:**
+1. **Loading State**: Shows spinner while fetching existing report
+2. **Existing Report View**: Displays read-only management report with:
+   - Operational Evaluation (Impact on Service, Contributory Factors, Actions/Outcomes, Recommendations, Lessons Learned)
+   - Stakeholder Notifications (Patient, Relative, Senior Manager, Pharmacist, Police, Other)
+   - OHS Matrix (Absence >3 days, Violence/Danger, Hospitalization >24h, Staff details)
+   - Risk Assessment (Severity, Likelihood, Rating product)
+   - Sign-off Status (Manager name, designation, date, signature verification)
+3. **Form State**: Admin-only form with all management fields for new/updated reports
+4. **Empty State**: Shows prompt for admins to add first management report
+
+**Form Fields:**
+- **Operational Evaluation**: impactOnService, contributoryFactors, actionsTakenOutcomes, recommendations, lessonsLearned
+- **Notifications**: informedPatient, informedRelative, informedSeniorManager, informedPharmacist, policeIncidentNumber, informedOther
+- **Risk Assessment**: riskSeverity (1-5), riskLikelihood (1-5), riskRating (auto-calculated)
+- **OHS Compliance**: ohsAbsenceOver3Days, ohsActOfViolenceOrDanger, ohsHospitalizationOver24Hours, ohsStaffName, ohsStaffDob, ohsStaffAddress
+- **Authorization**: managerName, managerSignature, managerDesignation, managerDate
+
+**Props Interface:**
+```typescript
+interface AdminManagementFormProps {
+  isAdmin: boolean;
+  loadingManagement: boolean;
+  managementReport: IncidentManagement | null;
+  isAddingManagement: boolean;
+  submittingManagement: boolean;
+  mgmtForm: Partial<IncidentManagement>;
+  selectedIncident: IncidentReport;
+  onFormChange: (updated: Partial<IncidentManagement>) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onStartAdding: () => void;
+  onCancelAdding: () => void;
+}
+```
+
 ### UI Components (shadcn/ui)
 - `Button` - Use `variant="default|outline|destructive|ghost|link"` and `size="sm|lg|icon"`
 - `Input` - Standard form input with focus/disabled states

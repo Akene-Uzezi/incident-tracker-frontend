@@ -445,6 +445,41 @@ export default function FormComponent() {
 }
 ```
 
+## Dashboard Components
+
+### IncidentDetails Modal
+
+The incident details dialog displays comprehensive incident information and management forms.
+
+**Features:**
+- **Header Section**: Shows incident ID, severity level badge, and status selector (admin only)
+- **Left Sidebar**: Reporter details including name, designation, contact info, date filed, and signature status
+- **Right Content Area**:
+  - Principal Person Involved section with type-specific fields
+  - Witness Details section (when witnesses exist)
+  - Description & Treatment section
+  - Equipment section (when equipment involved)
+- **Admin Management Section**: Contains the `AdminManagementForm` component for follow-up reports
+
+**Props:** See `IncidentDetails.tsx` for full interface
+
+### AdminManagementForm
+
+The management report form for creating/updating incident follow-up documentation.
+
+**Display States:**
+1. **Loading State**: Shows spinner while fetching existing report
+2. **Existing Report View**: Displays read-only management report
+3. **Form State**: Admin-only form with all management fields
+4. **Empty State**: Shows prompt for admins to add first management report
+
+**Form Sections:**
+- **Operational Evaluation**: Impact on Service, Contributory Factors, Actions/Outcomes, Recommendations, Lessons Learned
+- **Stakeholder Notifications**: Patient, Relative, Senior Manager, Pharmacist, Police, Other
+- **Risk Assessment**: Severity (1-5), Likelihood (1-5), Rating (auto-calculated)
+- **OHS Compliance**: Absence >3 days, Violence/Danger, Hospitalization >24h, Staff details
+- **Authorization**: Manager Name, Designation, Date, Signature
+
 ## Development
 
 ### Scripts
