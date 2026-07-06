@@ -52,7 +52,7 @@ export default function Dashboard() {
     useState<IncidentReport | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<boolean>(false);
 
-  const [user, setUser] = useState<{ role?: string }>({});
+  const [user, setUser] = useState<{ role?: string; id?: number }>({});
   const [managementReport, setManagementReport] =
     useState<IncidentManagement | null>(null);
   const [loadingManagement, setLoadingManagement] = useState<boolean>(false);
@@ -61,6 +61,11 @@ export default function Dashboard() {
     useState<boolean>(false);
   const [mgmtForm, setMgmtForm] =
     useState<Partial<IncidentManagement>>(DEFAULT_MGMT_FORM);
+
+  // Administrative Comment States
+  const [commentText, setCommentText] = useState<string>("");
+  const [isAddingComment, setIsAddingComment] = useState<boolean>(false);
+  const [submittingComment, setSubmittingComment] = useState<boolean>(false);
 
   const router = useRouter();
 
@@ -185,6 +190,8 @@ export default function Dashboard() {
     } else {
       setManagementReport(null);
       setIsAddingManagement(false);
+      setIsAddingComment(false);
+      setCommentText("");
     }
   }, [selectedIncident, canManageReport]);
 
@@ -276,6 +283,44 @@ export default function Dashboard() {
     }
   };
 
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedIncident || !canManageReport || !commentText.trim()) return;
+
+    setSubmittingComment(true);
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_apiurl}/incidents/comments`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            incidentId: selectedIncident.id,
+            userId: user.id || 1, // Graceful fallback value if id parameter is omitted in profile
+            comment: commentText,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to process comment mapping schema variables.");
+      }
+
+      toast.success("Comment logged successfully to dossier.");
+      setCommentText("");
+      setIsAddingComment(false);
+    } catch (error: any) {
+      toast.error(error.message || "Database execution error parsing comment payload.");
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <Card className="border-muted/40 shadow-sm rounded-xl">
@@ -312,12 +357,19 @@ export default function Dashboard() {
         isAddingManagement={isAddingManagement}
         submittingManagement={submittingManagement}
         mgmtForm={mgmtForm}
+        commentText={commentText}
+        isAddingComment={isAddingComment}
+        submittingComment={submittingComment}
         onClose={() => setSelectedIncident(null)}
         onStatusChange={handleStatusChange}
         onFormChange={setMgmtForm}
         onManagementSubmit={handleManagementSubmit}
         onStartAdding={() => setIsAddingManagement(true)}
         onCancelAdding={() => setIsAddingManagement(false)}
+        onCommentTextChange={setCommentText}
+        onCommentSubmit={handleCommentSubmit}
+        onStartAddingComment={() => setIsAddingComment(true)}
+        onCancelAddingComment={() => setIsAddingComment(false)}
       />
     </div>
   );

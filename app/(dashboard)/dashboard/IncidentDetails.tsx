@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   Calendar,
   Clock,
@@ -18,6 +19,7 @@ import {
   Info,
   Users,
   Wrench,
+  Plus,
 } from "lucide-react";
 import {
   IncidentReport,
@@ -39,12 +41,19 @@ interface IncidentDetailsProps {
   isAddingManagement: boolean;
   submittingManagement: boolean;
   mgmtForm: Partial<IncidentManagement>;
+  commentText: string;
+  isAddingComment: boolean;
+  submittingComment: boolean;
   onClose: () => void;
   onStatusChange: (status: IncidentStatus) => void;
   onFormChange: (updated: Partial<IncidentManagement>) => void;
   onManagementSubmit: (e: React.FormEvent) => void;
   onStartAdding: () => void;
   onCancelAdding: () => void;
+  onCommentTextChange: (text: string) => void;
+  onCommentSubmit: (e: React.FormEvent) => void;
+  onStartAddingComment: () => void;
+  onCancelAddingComment: () => void;
 }
 
 export function IncidentDetails({
@@ -57,12 +66,19 @@ export function IncidentDetails({
   isAddingManagement,
   submittingManagement,
   mgmtForm,
+  commentText,
+  isAddingComment,
+  submittingComment,
   onClose,
   onStatusChange,
   onFormChange,
   onManagementSubmit,
   onStartAdding,
   onCancelAdding,
+  onCommentTextChange,
+  onCommentSubmit,
+  onStartAddingComment,
+  onCancelAddingComment,
 }: IncidentDetailsProps) {
   // Check if the current user is strictly a core Admin/Superadmin for status management
   const isCoreAdmin = userRole === "admin" || userRole === "superadmin";
@@ -458,6 +474,58 @@ export function IncidentDetails({
                 onStartAdding={onStartAdding}
                 onCancelAdding={onCancelAdding}
               />
+
+              {/* Administrative Comment Section */}
+              {managementReport && isAdmin && (
+                <div className="mt-6 pt-6 border-t border-dashed">
+                  {!isAddingComment ? (
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={onStartAddingComment}
+                        className="text-xs h-8 flex items-center gap-1.5"
+                      >
+                        <Plus className="h-3.5 w-3.5 text-emerald-600" /> Add Comment
+                      </Button>
+                    </div>
+                  ) : (
+                    <form onSubmit={onCommentSubmit} className="space-y-4 bg-muted/20 p-4 rounded-xl border animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-foreground uppercase tracking-wider block">
+                          Add Administrative Comment / Note
+                        </label>
+                        <textarea
+                          required
+                          placeholder="Type your clinical alignment or internal administrative note here..."
+                          value={commentText}
+                          onChange={(e) => onCommentTextChange(e.target.value)}
+                          className="w-full text-xs bg-background border rounded-md p-2.5 h-20 focus:ring-1 focus:outline-none resize-none"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={onCancelAddingComment}
+                          className="text-xs h-8"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={submittingComment || !commentText.trim()}
+                          className="bg-emerald-600 text-white font-medium text-xs h-8 px-4"
+                        >
+                          {submittingComment ? "Saving..." : "Submit Comment"}
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
