@@ -123,77 +123,77 @@ export function AdminManagementForm({
             </div>
             {(managementReport.policeIncidentNumber ||
               managementReport.informedOther) && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground pt-1">
-                {managementReport.policeIncidentNumber && (
-                  <p>
-                    <strong className="text-foreground font-medium">
-                      Police Incident Number:
-                    </strong>{" "}
-                    {managementReport.policeIncidentNumber}
-                  </p>
-                )}
-                {managementReport.informedOther && (
-                  <p>
-                    <strong className="text-foreground font-medium">
-                      Other Party Informed:
-                    </strong>{" "}
-                    {managementReport.informedOther}
-                  </p>
-                )}
-              </div>
-            )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground pt-1">
+                  {managementReport.policeIncidentNumber && (
+                    <p>
+                      <strong className="text-foreground font-medium">
+                        Police Incident Number:
+                      </strong>{" "}
+                      {managementReport.policeIncidentNumber}
+                    </p>
+                  )}
+                  {managementReport.informedOther && (
+                    <p>
+                      <strong className="text-foreground font-medium">
+                        Other Party Informed:
+                      </strong>{" "}
+                      {managementReport.informedOther}
+                    </p>
+                  )}
+                </div>
+              )}
           </div>
 
           {(managementReport.ohsStaffName ||
             managementReport.ohsAbsenceOver3Days) && (
-            <div className="pt-3 border-t space-y-2 bg-muted/30 p-3 rounded-lg border">
-              <span className="text-xs font-semibold text-muted-foreground tracking-wider uppercase block">
-                Occupational Health & Safety Matrix
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-muted-foreground">
-                <p>
-                  <strong className="text-foreground font-medium">
-                    Absence &gt; 3 Days:
-                  </strong>{" "}
-                  {managementReport.ohsAbsenceOver3Days ? "Yes" : "No"}
-                </p>
-                <p>
-                  <strong className="text-foreground font-medium">
-                    Violence / Danger:
-                  </strong>{" "}
-                  {managementReport.ohsActOfViolenceOrDanger ? "Yes" : "No"}
-                </p>
-                <p>
-                  <strong className="text-foreground font-medium">
-                    Hospitalized &gt; 24h:
-                  </strong>{" "}
-                  {managementReport.ohsHospitalizationOver24Hours
-                    ? "Yes"
-                    : "No"}
-                </p>
+              <div className="pt-3 border-t space-y-2 bg-muted/30 p-3 rounded-lg border">
+                <span className="text-xs font-semibold text-muted-foreground tracking-wider uppercase block">
+                  Occupational Health & Safety Matrix
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-muted-foreground">
+                  <p>
+                    <strong className="text-foreground font-medium">
+                      Absence &gt; 3 Days:
+                    </strong>{" "}
+                    {managementReport.ohsAbsenceOver3Days ? "Yes" : "No"}
+                  </p>
+                  <p>
+                    <strong className="text-foreground font-medium">
+                      Violence / Danger:
+                    </strong>{" "}
+                    {managementReport.ohsActOfViolenceOrDanger ? "Yes" : "No"}
+                  </p>
+                  <p>
+                    <strong className="text-foreground font-medium">
+                      Hospitalized &gt; 24h:
+                    </strong>{" "}
+                    {managementReport.ohsHospitalizationOver24Hours
+                      ? "Yes"
+                      : "No"}
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-muted-foreground pt-1">
+                  <p>
+                    <strong className="text-foreground font-medium">
+                      Target Staff Name:
+                    </strong>{" "}
+                    {managementReport.ohsStaffName || "N/A"}
+                  </p>
+                  <p>
+                    <strong className="text-foreground font-medium">
+                      Staff DOB:
+                    </strong>{" "}
+                    {managementReport.ohsStaffDob || "N/A"}
+                  </p>
+                  <p>
+                    <strong className="text-foreground font-medium">
+                      Home Address:
+                    </strong>{" "}
+                    {managementReport.ohsStaffAddress || "N/A"}
+                  </p>
+                </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-muted-foreground pt-1">
-                <p>
-                  <strong className="text-foreground font-medium">
-                    Target Staff Name:
-                  </strong>{" "}
-                  {managementReport.ohsStaffName || "N/A"}
-                </p>
-                <p>
-                  <strong className="text-foreground font-medium">
-                    Staff DOB:
-                  </strong>{" "}
-                  {managementReport.ohsStaffDob || "N/A"}
-                </p>
-                <p>
-                  <strong className="text-foreground font-medium">
-                    Home Address:
-                  </strong>{" "}
-                  {managementReport.ohsStaffAddress || "N/A"}
-                </p>
-              </div>
-            </div>
-          )}
+            )}
         </div>
 
         <div className="space-y-4 border-l pl-0 md:pl-6 border-emerald-100 flex flex-col justify-between">

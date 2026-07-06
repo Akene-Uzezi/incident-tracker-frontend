@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState } from "react"; // 👈 Added useState
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,8 @@ import {
   Users,
   Wrench,
   Plus,
+  Eye, // 👈 Added Eye icon
+  MessageSquare, // 👈 Added message icon
 } from "lucide-react";
 import {
   IncidentReport,
@@ -41,6 +44,7 @@ interface IncidentDetailsProps {
   isAddingManagement: boolean;
   submittingManagement: boolean;
   mgmtForm: Partial<IncidentManagement>;
+  comments: any[]; // 👈 Added to interface
   commentText: string;
   isAddingComment: boolean;
   submittingComment: boolean;
@@ -66,6 +70,7 @@ export function IncidentDetails({
   isAddingManagement,
   submittingManagement,
   mgmtForm,
+  comments = [], // 👈 Default fallback assignment
   commentText,
   isAddingComment,
   submittingComment,
@@ -80,8 +85,8 @@ export function IncidentDetails({
   onStartAddingComment,
   onCancelAddingComment,
 }: IncidentDetailsProps) {
-  // Check if the current user is strictly a core Admin/Superadmin for status management
   const isCoreAdmin = userRole === "admin" || userRole === "superadmin";
+  const [showComments, setShowComments] = useState<boolean>(false); // 👈 Local UI state wrapper for line 505 toggle
 
   return (
     <Dialog open={!!incident} onOpenChange={(open) => !open && onClose()}>
@@ -477,9 +482,21 @@ export function IncidentDetails({
 
               {/* Administrative Comment Section */}
               {managementReport && isAdmin && (
-                <div className="mt-6 pt-6 border-t border-dashed">
-                  {!isAddingComment ? (
-                    <div className="flex justify-end">
+                <div className="mt-6 pt-6 border-t border-dashed space-y-4">
+                  <div className="flex justify-between items-center">
+                    {/* 💡 Line 505 Toggle Button Fix */}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowComments(!showComments)}
+                      className="text-xs h-8 flex items-center gap-1.5 text-muted-foreground"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      {showComments ? "Hide Log Files" : `View Comments (${comments.length})`}
+                    </Button>
+
+                    {!isAddingComment && (
                       <Button
                         type="button"
                         variant="outline"
@@ -489,8 +506,31 @@ export function IncidentDetails({
                       >
                         <Plus className="h-3.5 w-3.5 text-emerald-600" /> Add Comment
                       </Button>
+                    )}
+                  </div>
+
+                  {/* Comments Display Block */}
+                  {showComments && (
+                    <div className="space-y-3 max-h-60 overflow-y-auto pr-2 animate-in fade-in duration-200">
+                      {comments.length === 0 ? (
+                        <p className="text-xs text-muted-foreground italic p-2">No timeline comments logged yet.</p>
+                      ) : (
+                        comments.map((c, i) => (
+                          <div key={c.id || i} className="bg-muted/40 border p-3 rounded-lg space-y-1">
+                            <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+                              <span className="flex items-center gap-1 text-emerald-700">
+                                <MessageSquare className="h-3 w-3" /> System Evaluator #{c.userId || "Admin"}
+                              </span>
+                              <span>{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ""}</span>
+                            </div>
+                            <p className="text-xs text-foreground/90 font-sans leading-relaxed">{c.comment}</p>
+                          </div>
+                        ))
+                      )}
                     </div>
-                  ) : (
+                  )}
+
+                  {isAddingComment && (
                     <form onSubmit={onCommentSubmit} className="space-y-4 bg-muted/20 p-4 rounded-xl border animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="space-y-1">
                         <label className="text-xs font-semibold text-foreground uppercase tracking-wider block">

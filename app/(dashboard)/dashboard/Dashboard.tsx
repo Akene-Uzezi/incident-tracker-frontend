@@ -63,15 +63,19 @@ export default function Dashboard() {
     useState<Partial<IncidentManagement>>(DEFAULT_MGMT_FORM);
 
   // Administrative Comment States
-  const [comments, setComments] = useState<any[]>([]); // 👈 Added comments array state
   const [commentText, setCommentText] = useState<string>("");
   const [isAddingComment, setIsAddingComment] = useState<boolean>(false);
   const [submittingComment, setSubmittingComment] = useState<boolean>(false);
+  const [comments, setComments] = useState<any[]>([]);
+  const [loadingComments, setLoadingComments] = useState<boolean>(false);
+  const [showComments, setShowComments] = useState<boolean>(false);
 
   const router = useRouter();
 
+  // Strict check for core administrators
   const isAdmin = user.role === "admin" || user.role === "superadmin";
 
+  // Expanded write clearance for managing/submitting documentation logs
   const canManageReport =
     user.role === "admin" ||
     user.role === "superadmin" ||
@@ -164,9 +168,10 @@ export default function Dashboard() {
     }
   };
 
-  // 👈 Added function to pull data from your new Go GET endpoint
   const fetchComments = async (incidentId: number) => {
+    setLoadingComments(true);
     const token = localStorage.getItem("token");
+
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_apiurl}/incidents/comments?incidentId=${incidentId}`,
@@ -181,11 +186,23 @@ export default function Dashboard() {
 
       if (response.ok) {
         const data = await response.json();
-        // Fallback checks depending on whether your Go API outputs a direct JSON array or a wrapped object
-        setComments(Array.isArray(data) ? data : data.comments || []);
+        setComments(data || []);
+      } else {
+        throw new Error("Failed to load historical comments array.");
       }
     } catch (error: any) {
-      console.error("Error fetching comments dossier:", error.message);
+      console.error(error.message);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const handleToggleComments = () => {
+    if (!selectedIncident) return;
+    const nextVisibility = !showComments;
+    setShowComments(nextVisibility);
+    if (nextVisibility) {
+      fetchComments(selectedIncident.id);
     }
   };
 
@@ -196,7 +213,8 @@ export default function Dashboard() {
   useEffect(() => {
     if (selectedIncident) {
       fetchManagementReport(selectedIncident.id);
-      fetchComments(selectedIncident.id); // 👈 Fetch comments here when dialog opens
+      // Pre-fetch comment size count silently on drawer mount
+      fetchComments(selectedIncident.id);
 
       if (canManageReport) {
         setMgmtForm({
@@ -214,10 +232,11 @@ export default function Dashboard() {
       }
     } else {
       setManagementReport(null);
-      setComments([]); // 👈 Clear array when modal resets
       setIsAddingManagement(false);
       setIsAddingComment(false);
       setCommentText("");
+      setComments([]);
+      setShowComments(false);
     }
   }, [selectedIncident, canManageReport]);
 
@@ -340,7 +359,10 @@ export default function Dashboard() {
       toast.success("Comment logged successfully to dossier.");
       setCommentText("");
       setIsAddingComment(false);
-      fetchComments(selectedIncident.id); // 👈 Re-fetch comments so the list updates instantly!
+
+      // Auto refresh list variables and display updates cleanly
+      fetchComments(selectedIncident.id);
+      setShowComments(true);
     } catch (error: any) {
       toast.error(error.message || "Database execution error parsing comment payload.");
     } finally {
@@ -384,10 +406,13 @@ export default function Dashboard() {
         isAddingManagement={isAddingManagement}
         submittingManagement={submittingManagement}
         mgmtForm={mgmtForm}
-        comments={comments} // 👈 Passed down array
         commentText={commentText}
         isAddingComment={isAddingComment}
         submittingComment={submittingComment}
+        comments={comments}
+        loadingComments={loadingComments}
+        showComments={showComments}
+        onToggleComments={handleToggleComments}
         onClose={() => setSelectedIncident(null)}
         onStatusChange={handleStatusChange}
         onFormChange={setMgmtForm}
