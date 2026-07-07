@@ -1,0 +1,11 @@
+services:
+  incidenttracker-frontend:
+    build: .
+    ports:
+      - "3003:3000"
+    environment:
+      - NEXT_PUBLIC_apiurl=http://docker.internal:3002
+    env_file:
+      - ".env"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
