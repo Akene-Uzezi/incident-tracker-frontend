@@ -519,7 +519,7 @@ export function IncidentDetails({
                           <div key={c.id || i} className="bg-muted/40 border p-3 rounded-lg space-y-1">
                             <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
                               <span className="flex items-center gap-1 text-emerald-700">
-                                <MessageSquare className="h-3 w-3" /> System Evaluator #{c.userId || "Admin"}
+                                <MessageSquare className="h-3 w-3" />  {c.commentUserName} || {c.commentUserRole}
                               </span>
                               <span>{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ""}</span>
                             </div>

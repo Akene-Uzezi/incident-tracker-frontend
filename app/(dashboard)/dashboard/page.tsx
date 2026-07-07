@@ -182,6 +182,7 @@ export default function Dashboard() {
       if (response.ok) {
         const data = await response.json();
         // Fallback checks depending on whether your Go API outputs a direct JSON array or a wrapped object
+        console.log(data);
         setComments(Array.isArray(data) ? data : data.comments || []);
       }
     } catch (error: any) {
