@@ -571,7 +571,7 @@ export function IncidentDetails({
                       className="text-xs h-8 flex items-center gap-1.5 text-muted-foreground"
                     >
                       <Eye className="h-3.5 w-3.5" />
-                      {showComments ? "Hide Log Files" : `View Comments (${comments.length})`}
+                      {showComments ? "Hide Comments" : `View Comments (${comments.length})`}
                     </Button>
 
                     {!isAddingComment && (

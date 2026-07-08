@@ -115,7 +115,7 @@ export function IncidentTable({
                       onClick={() => onViewIncident(incident)}
                       size="sm"
                       variant="ghost"
-                      className="text-xs h-8 font-medium gap-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50/50"
+                      className="text-xs h-8 font-medium gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50/50"
                     >
                       <Eye className="h-3.5 w-3.5" /> View
                     </Button>
