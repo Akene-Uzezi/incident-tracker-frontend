@@ -159,7 +159,7 @@ export default function DashboardLayout({
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all group",
                   item.variant === "default"
-                    ? "bg-emerald-600 text-white shadow-sm"
+                    ? "bg-blue-600 text-white shadow-sm"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   !isSidebarOpen && "justify-center px-0"
                 )}
