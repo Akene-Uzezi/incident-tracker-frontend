@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -207,12 +208,15 @@ export default function LandingReportPage() {
 
       if (response.ok) {
         setSuccess(true);
+        toast.success("Report submitted");
         resetForm();
       } else {
         const data = await response.json();
+        toast.error(data.message || "Failed to submit report. Please try again");
         setError(data.message || "Failed to submit report. Please try again.");
       }
     } catch (err) {
+      toast.error("A connection issue occurred. Please check your network and try again");
       setError(
         "A connection issue occurred. Please check your network and try again.",
       );
@@ -336,11 +340,10 @@ export default function LandingReportPage() {
                 {[1, 2, 3].map((step) => (
                   <div
                     key={step}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      step <= currentStep
+                    className={`h-2 rounded-full transition-all duration-300 ${step <= currentStep
                         ? "bg-blue-600 w-8"
                         : "bg-slate-200 dark:bg-slate-700 w-2"
-                    }`}
+                      }`}
                   />
                 ))}
               </div>

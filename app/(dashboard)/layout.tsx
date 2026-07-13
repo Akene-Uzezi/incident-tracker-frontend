@@ -55,33 +55,38 @@ export default function DashboardLayout({
   const superAdminNavItems: SuperAdminNavigationItem[] = [
     {
       label: "User Management",
-      href: "/auth/register",
+      href: "/dashboard/register",
       icon: UserPlus,
-      variant: pathname === "/auth/register" ? "default" : "ghost",
+      variant: pathname === "/dashboard/register" ? "default" : "ghost",
     },
   ];
 
   useEffect(() => {
-    // Validates active session and fetches client user profile mapping
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    setIsAuthenticated(true); // Graceful mounting state fallback
+    if (typeof window !== "undefined") {
+      setIsAuthenticated(true);
 
-    fetch("/api/v1/user")
-      .then((res) => {
-        if (res.ok) return res.json();
-        return null;
-      })
-      .then((data) => {
-        if (data) {
-          setUser(data);
+      // Pull the user object directly out of localStorage
+      const storedUser = localStorage.getItem("user");
+
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+        } catch (error) {
+          console.error("Failed to parse user object from localStorage:", error);
         }
-      })
-      .catch((err) => console.error("Error establishing session context:", err));
+      } else {
+        console.warn(
+          "No 'user' key found in localStorage. Ensure your login component saves it using: localStorage.setItem('user', JSON.stringify(userData))"
+        );
+      }
+    }
   }, []);
 
   const handleLogout = () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
     }
     router.push("/login");
   };
@@ -133,7 +138,8 @@ export default function DashboardLayout({
           ))}
 
           {/* Elevated Administrative Action Elements */}
-          {user?.role === "admin" &&
+          {/* Made case-insensitive to safely catch 'superadmin', 'SuperAdmin', or 'SUPERADMIN' */}
+          {user?.role?.toLowerCase() === "superadmin" &&
             superAdminNavItems.map((item) => (
               <Link
                 key={item.href}
@@ -154,7 +160,6 @@ export default function DashboardLayout({
 
         {/* Actions Section - Affixed cleanly to the bottom container */}
         <div className="mt-auto p-3 border-t space-y-1">
-          {/* FIXED: Sidebar View Collapse / Expand Toggle Button */}
           <button
             type="button"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -179,7 +184,6 @@ export default function DashboardLayout({
             </span>
           </button>
 
-          {/* User Session Termination Link */}
           <button
             type="button"
             onClick={handleLogout}
