@@ -57,6 +57,7 @@ export default function LoginPage() {
         const user = data.user;
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(user));
+        document.cookie = `user_role=${user.role}; path=/; max-age=86400; sameSite=Strict; Secure`
         router.replace("/dashboard");
       } else {
         setError(`${data.error}`);
