@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 import {
   IncidentReport,
@@ -12,6 +13,7 @@ import {
   PaginationMeta,
   IncidentResponse,
   formatStatusText,
+  VALID_STATUSES,
 } from "./types";
 import { IncidentTable } from "./IncidentTable";
 import { IncidentDetails } from "./IncidentDetails";
@@ -71,6 +73,9 @@ export default function Dashboard() {
 
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState<boolean>(false);
+
+  // User-side filter state
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("all");
 
   const router = useRouter();
 
@@ -439,10 +444,15 @@ export default function Dashboard() {
     }
   };
 
+  // Compute filtered rows array contextually inline on the client side
+  const filteredIncidents = selectedStatusFilter === "all"
+    ? incidents
+    : incidents.filter((inc) => inc.incidentStatus === selectedStatusFilter);
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <Card className="border-muted/40 shadow-sm rounded-xl">
-        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b gap-4">
+        <CardHeader className="flex flex-col lg:flex-row items-start lg:items-center justify-between pb-6 border-b gap-4">
           <div>
             <CardTitle className="text-xl font-bold tracking-tight text-foreground">
               Hospital Incident Logs
@@ -452,10 +462,35 @@ export default function Dashboard() {
               institutional metrics.
             </p>
           </div>
+
+          {/* User-side Filter Interface Buttons Panels */}
+          <div className="flex flex-wrap gap-1.5 bg-muted/40 p-1 rounded-lg border border-muted">
+            <Button
+              variant={selectedStatusFilter === "all" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSelectedStatusFilter("all")}
+              className={`text-xs h-7 px-3 font-medium transition-all duration-150 ${selectedStatusFilter === "all" ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+            >
+              All Logs
+            </Button>
+            {VALID_STATUSES.map((st) => (
+              <Button
+                key={st.value}
+                variant={selectedStatusFilter === st.value ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setSelectedStatusFilter(st.value)}
+                className={`text-xs h-7 px-3 font-medium transition-all duration-150 ${selectedStatusFilter === st.value ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+              >
+                {st.label}
+              </Button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent className="pt-6 px-0 sm:px-6">
           <IncidentTable
-            incidents={incidents}
+            incidents={filteredIncidents}
             loading={loading}
             pagination={pagination}
             currentPage={currentPage}
