@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -69,7 +69,22 @@ interface IncidentDetailsProps {
 
 // Helper function to extract and format only the fields that changed
 function getLogChanges(oldVal: any, newVal: any): string[] {
-  if (!oldVal || !newVal) return [];
+  let parsedOld = oldVal;
+  let parsedNew = newVal;
+
+  // Gracefully handle stringified JSON in logs
+  if (typeof oldVal === "string") {
+    try {
+      parsedOld = JSON.parse(oldVal);
+    } catch (e) { }
+  }
+  if (typeof newVal === "string") {
+    try {
+      parsedNew = JSON.parse(newVal);
+    } catch (e) { }
+  }
+
+  if (!parsedOld || !parsedNew) return [];
   const changes: string[] = [];
 
   const fieldLabels: Record<string, string> = {
@@ -99,13 +114,13 @@ function getLogChanges(oldVal: any, newVal: any): string[] {
     managerDate: "Manager Date",
   };
 
-  const allKeys = Array.from(new Set([...Object.keys(oldVal), ...Object.keys(newVal)]));
+  const allKeys = Array.from(new Set([...Object.keys(parsedOld), ...Object.keys(parsedNew)]));
 
   for (const key of allKeys) {
     if (key === "id" || key === "incidentId") continue;
 
-    const oldRaw = oldVal[key];
-    const newRaw = newVal[key];
+    const oldRaw = parsedOld[key];
+    const newRaw = parsedNew[key];
 
     const oldStr = oldRaw === undefined || oldRaw === null ? "" : String(oldRaw);
     const newStr = newRaw === undefined || newRaw === null ? "" : String(newRaw);
@@ -156,6 +171,8 @@ export function IncidentDetails({
   onCancelAddingComment,
 }: IncidentDetailsProps) {
   const isCoreAdmin = userRole === "admin" || userRole === "superadmin";
+  const isManageAllowed = isAdmin || isCoreAdmin || userRole === "manager";
+
   const [showComments, setShowComments] = useState<boolean>(false);
   const [logPage, setLogPage] = useState<number>(1);
   const logsPerPage = 5;
@@ -163,6 +180,21 @@ export function IncidentDetails({
   useEffect(() => {
     setLogPage(1);
   }, [incident]);
+
+  // Normalize report checking logic to prevent truthiness of empty arrays or objects
+  const reportData = useMemo(() => {
+    if (!managementReport) return null;
+    if (Array.isArray(managementReport)) {
+      return managementReport.length > 0 ? managementReport[0] : null;
+    }
+    if (typeof managementReport === "object" && Object.keys(managementReport).length === 0) {
+      return null;
+    }
+    return managementReport;
+  }, [managementReport]);
+
+  const hasReport = !!reportData;
+  const logsList = Array.isArray(logs) ? logs : [];
 
   return (
     <Dialog open={!!incident} onOpenChange={(open) => !open && onClose()}>
@@ -543,9 +575,9 @@ export function IncidentDetails({
                 Administrative Evaluation Dossier
               </h2>
               <AdminManagementForm
-                isAdmin={isAdmin}
+                isAdmin={isManageAllowed}
                 loadingManagement={loadingManagement}
-                managementReport={managementReport}
+                managementReport={reportData}
                 isAddingManagement={isAddingManagement}
                 isEditingManagement={isEditingManagement}
                 submittingManagement={submittingManagement}
@@ -559,8 +591,8 @@ export function IncidentDetails({
                 onCancelEditing={onCancelEditing}
               />
 
-              {/* Administrative Comment Section */}
-              {managementReport && isAdmin && (
+              {/* Administrative Comment Section (Requires filled report and authorized personnel) */}
+              {hasReport && isManageAllowed && (
                 <div className="mt-6 pt-6 border-t border-dashed space-y-4">
                   <div className="flex justify-between items-center">
                     <Button
@@ -595,7 +627,7 @@ export function IncidentDetails({
                         comments.map((c, i) => (
                           <div key={c.id || i} className="bg-muted/40 border p-3 rounded-lg space-y-1">
                             <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
-                              <span className="flex items-center gap-1 text-emerald-700">
+                              <span className="flex items-center gap-1 text-emerald-700 font-semibold">
                                 <MessageSquare className="h-3 w-3" />  {c.commentUserName} || {c.commentUserRole}
                               </span>
                               <span>{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ""}</span>
@@ -645,7 +677,7 @@ export function IncidentDetails({
               )}
             </div>
 
-            {/* Audit Logs Section (Admins Only) */}
+            {/* Audit Logs Section (Admins & Superadmins Only) */}
             {isCoreAdmin && (
               <div className="border-t pt-6 space-y-4">
                 <h2 className="text-base font-semibold tracking-tight flex items-center gap-2 text-foreground">
@@ -658,7 +690,7 @@ export function IncidentDetails({
                     <RefreshCw className="h-3.5 w-3.5 animate-spin text-emerald-600" />
                     Loading configuration history logs...
                   </div>
-                ) : logs.length === 0 ? (
+                ) : logsList.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic bg-muted/20 p-3 rounded-lg border">
                     No administrative mutation history has been recorded for this dossier yet.
                   </p>
@@ -675,10 +707,10 @@ export function IncidentDetails({
                           </tr>
                         </thead>
                         <tbody className="divide-y text-xs text-muted-foreground">
-                          {logs
+                          {logsList
                             .slice((logPage - 1) * logsPerPage, logPage * logsPerPage)
                             .map((log) => {
-                              // Dynamically extract the specific diffs 
+                              // Dynamically extract changes, parser handles stringified JSON
                               const fieldChanges = getLogChanges(log.oldValue, log.newValue);
 
                               return (
@@ -714,11 +746,11 @@ export function IncidentDetails({
                       </table>
                     </div>
 
-                    {logs.length > logsPerPage && (
+                    {logsList.length > logsPerPage && (
                       <div className="flex items-center justify-between text-xs pt-1 px-1">
                         <div className="text-muted-foreground">
                           Showing {((logPage - 1) * logsPerPage) + 1}-
-                          {Math.min(logs.length, logPage * logsPerPage)} of {logs.length} revision statements
+                          {Math.min(logsList.length, logPage * logsPerPage)} of {logsList.length} revision statements
                         </div>
                         <div className="flex items-center space-x-2">
                           <Button
@@ -731,13 +763,13 @@ export function IncidentDetails({
                             Previous
                           </Button>
                           <span className="text-muted-foreground">
-                            Page {logPage} of {Math.ceil(logs.length / logsPerPage)}
+                            Page {logPage} of {Math.ceil(logsList.length / logsPerPage)}
                           </span>
                           <Button
                             type="button"
                             variant="outline"
                             className="h-7 px-2.5 text-xs"
-                            disabled={logPage >= Math.ceil(logs.length / logsPerPage)}
+                            disabled={logPage >= Math.ceil(logsList.length / logsPerPage)}
                             onClick={() => setLogPage((p) => p + 1)}
                           >
                             Next

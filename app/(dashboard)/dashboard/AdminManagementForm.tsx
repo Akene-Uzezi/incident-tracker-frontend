@@ -46,10 +46,10 @@ export function AdminManagementForm({
     );
   }
 
-  // 1. Static Display Mode (Any user reads it; authorized users see the Edit action button)
+  // 1. Static Display Mode (Anyone reads it; Admins & Managers see the Edit action button)
   if (managementReport && !isEditingManagement) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 animate-in fade-in duration-200">
         {isAdmin && (
           <div className="flex justify-end">
             <Button
@@ -75,7 +75,7 @@ export function AdminManagementForm({
                   Impact on Service
                 </span>
                 <p className="bg-background p-2.5 rounded-lg border mt-1 text-xs text-foreground">
-                  {managementReport.impactOnService}
+                  {managementReport.impactOnService || "N/A"}
                 </p>
               </div>
               <div>
@@ -83,7 +83,7 @@ export function AdminManagementForm({
                   Contributory Factors
                 </span>
                 <p className="bg-background p-2.5 rounded-lg border mt-1 text-xs text-foreground">
-                  {managementReport.contributoryFactors}
+                  {managementReport.contributoryFactors || "N/A"}
                 </p>
               </div>
               <div>
@@ -91,7 +91,7 @@ export function AdminManagementForm({
                   Actions / Outcomes
                 </span>
                 <p className="bg-background p-2.5 rounded-lg border mt-1 text-xs text-foreground">
-                  {managementReport.actionsTakenOutcomes}
+                  {managementReport.actionsTakenOutcomes || "N/A"}
                 </p>
               </div>
               <div>
@@ -99,7 +99,7 @@ export function AdminManagementForm({
                   Recommendations
                 </span>
                 <p className="bg-background p-2.5 rounded-lg border mt-1 text-xs text-foreground">
-                  {managementReport.recommendations}
+                  {managementReport.recommendations || "N/A"}
                 </p>
               </div>
               <div className="sm:col-span-2">
@@ -107,7 +107,7 @@ export function AdminManagementForm({
                   Lessons Learned
                 </span>
                 <p className="bg-background p-2.5 rounded-lg border mt-1 text-xs text-foreground">
-                  {managementReport.lessonsLearned}
+                  {managementReport.lessonsLearned || "N/A"}
                 </p>
               </div>
             </div>
@@ -224,16 +224,16 @@ export function AdminManagementForm({
                   <strong className="text-foreground font-medium">
                     Risk Severity Score:
                   </strong>{" "}
-                  {managementReport.riskSeverity} / 5
+                  {managementReport.riskSeverity || "0"} / 5
                 </p>
                 <p>
                   <strong className="text-foreground font-medium">
                     Risk Likelihood Score:
                   </strong>{" "}
-                  {managementReport.riskLikelihood} / 5
+                  {managementReport.riskLikelihood || "0"} / 5
                 </p>
                 <div className="mt-2 pt-2 border-t font-semibold text-rose-600">
-                  Combined Risk Product Rating: {managementReport.riskRating}
+                  Combined Risk Product Rating: {managementReport.riskRating || (Number(managementReport.riskSeverity || 0) * Number(managementReport.riskLikelihood || 0)) || "N/A"}
                 </div>
               </div>
             </div>
@@ -262,10 +262,10 @@ export function AdminManagementForm({
     );
   }
 
-  // 2. Initial Setup Form Prompt (Authorized users see this if dossier record doesn't exist)
+  // 2. Initial Setup Form Prompt (Admins & Managers see this if report doesn't exist)
   if (isAdmin && !isAddingManagement && !isEditingManagement) {
     return (
-      <div className="text-center py-8 border border-dashed rounded-xl bg-muted/10">
+      <div className="text-center py-8 border border-dashed rounded-xl bg-muted/10 animate-in fade-in duration-200">
         <p className="text-sm text-muted-foreground mb-3">
           No administrative management report has been generated for this
           record.
@@ -277,7 +277,7 @@ export function AdminManagementForm({
     );
   }
 
-  // 3. Form Input View Block (Reused contextually for Add or Edit Actions)
+  // 3. Form Input View Block (Reused for Add and Edit Actions)
   if (isAdmin && (isAddingManagement || isEditingManagement)) {
     return (
       <form
@@ -295,7 +295,7 @@ export function AdminManagementForm({
               </label>
               <textarea
                 required
-                value={mgmtForm.impactOnService}
+                value={mgmtForm.impactOnService || ""}
                 onChange={(e) =>
                   onFormChange({ ...mgmtForm, impactOnService: e.target.value })
                 }
@@ -308,7 +308,7 @@ export function AdminManagementForm({
               </label>
               <textarea
                 required
-                value={mgmtForm.contributoryFactors}
+                value={mgmtForm.contributoryFactors || ""}
                 onChange={(e) =>
                   onFormChange({
                     ...mgmtForm,
@@ -324,7 +324,7 @@ export function AdminManagementForm({
               </label>
               <textarea
                 required
-                value={mgmtForm.lessonsLearned}
+                value={mgmtForm.lessonsLearned || ""}
                 onChange={(e) =>
                   onFormChange({ ...mgmtForm, lessonsLearned: e.target.value })
                 }
@@ -343,7 +343,7 @@ export function AdminManagementForm({
               </label>
               <textarea
                 required
-                value={mgmtForm.actionsTakenOutcomes}
+                value={mgmtForm.actionsTakenOutcomes || ""}
                 onChange={(e) =>
                   onFormChange({
                     ...mgmtForm,
@@ -359,7 +359,7 @@ export function AdminManagementForm({
               </label>
               <textarea
                 required
-                value={mgmtForm.recommendations}
+                value={mgmtForm.recommendations || ""}
                 onChange={(e) =>
                   onFormChange({
                     ...mgmtForm,
@@ -411,7 +411,7 @@ export function AdminManagementForm({
               </label>
               <input
                 type="text"
-                value={mgmtForm.policeIncidentNumber}
+                value={mgmtForm.policeIncidentNumber || ""}
                 onChange={(e) =>
                   onFormChange({
                     ...mgmtForm,
@@ -427,7 +427,7 @@ export function AdminManagementForm({
               </label>
               <input
                 type="text"
-                value={mgmtForm.informedOther}
+                value={mgmtForm.informedOther || ""}
                 onChange={(e) =>
                   onFormChange({ ...mgmtForm, informedOther: e.target.value })
                 }
@@ -451,13 +451,16 @@ export function AdminManagementForm({
                 required
                 min="1"
                 max="5"
-                value={mgmtForm.riskSeverity}
-                onChange={(e) =>
+                value={mgmtForm.riskSeverity || ""}
+                onChange={(e) => {
+                  const sev = parseInt(e.target.value) || 0;
+                  const like = mgmtForm.riskLikelihood || 0;
                   onFormChange({
                     ...mgmtForm,
-                    riskSeverity: parseInt(e.target.value) || 1,
-                  })
-                }
+                    riskSeverity: sev,
+                    riskRating: sev * like,
+                  });
+                }}
                 className="w-full text-xs bg-background border rounded-md p-2 h-9 focus:ring-1 focus:outline-none"
               />
             </div>
@@ -470,13 +473,16 @@ export function AdminManagementForm({
                 required
                 min="1"
                 max="5"
-                value={mgmtForm.riskLikelihood}
-                onChange={(e) =>
+                value={mgmtForm.riskLikelihood || ""}
+                onChange={(e) => {
+                  const like = parseInt(e.target.value) || 0;
+                  const sev = mgmtForm.riskSeverity || 0;
                   onFormChange({
                     ...mgmtForm,
-                    riskLikelihood: parseInt(e.target.value) || 1,
-                  })
-                }
+                    riskLikelihood: like,
+                    riskRating: sev * like,
+                  });
+                }}
                 className="w-full text-xs bg-background border rounded-md p-2 h-9 focus:ring-1 focus:outline-none"
               />
             </div>
@@ -487,7 +493,7 @@ export function AdminManagementForm({
               <input
                 type="number"
                 readOnly
-                value={mgmtForm.riskRating}
+                value={(mgmtForm.riskSeverity || 0) * (mgmtForm.riskLikelihood || 0) || ""}
                 className="w-full text-xs bg-muted border rounded-md p-2 h-9 font-semibold text-rose-600 focus:outline-none"
               />
             </div>
@@ -538,7 +544,7 @@ export function AdminManagementForm({
               </label>
               <input
                 type="text"
-                value={mgmtForm.ohsStaffName}
+                value={mgmtForm.ohsStaffName || ""}
                 onChange={(e) =>
                   onFormChange({ ...mgmtForm, ohsStaffName: e.target.value })
                 }
@@ -551,7 +557,7 @@ export function AdminManagementForm({
               </label>
               <input
                 type="date"
-                value={mgmtForm.ohsStaffDob}
+                value={mgmtForm.ohsStaffDob || ""}
                 onChange={(e) =>
                   onFormChange({ ...mgmtForm, ohsStaffDob: e.target.value })
                 }
@@ -564,7 +570,7 @@ export function AdminManagementForm({
               </label>
               <input
                 type="text"
-                value={mgmtForm.ohsStaffAddress}
+                value={mgmtForm.ohsStaffAddress || ""}
                 onChange={(e) =>
                   onFormChange({ ...mgmtForm, ohsStaffAddress: e.target.value })
                 }
@@ -586,7 +592,7 @@ export function AdminManagementForm({
               <input
                 type="text"
                 required
-                value={mgmtForm.managerName}
+                value={mgmtForm.managerName || ""}
                 onChange={(e) =>
                   onFormChange({ ...mgmtForm, managerName: e.target.value })
                 }
@@ -600,7 +606,7 @@ export function AdminManagementForm({
               <input
                 type="text"
                 required
-                value={mgmtForm.managerDesignation}
+                value={mgmtForm.managerDesignation || ""}
                 onChange={(e) =>
                   onFormChange({
                     ...mgmtForm,
@@ -617,7 +623,7 @@ export function AdminManagementForm({
               <input
                 type="date"
                 required
-                value={mgmtForm.managerDate}
+                value={mgmtForm.managerDate || ""}
                 onChange={(e) =>
                   onFormChange({ ...mgmtForm, managerDate: e.target.value })
                 }
@@ -629,7 +635,7 @@ export function AdminManagementForm({
                 <input
                   type="checkbox"
                   required
-                  checked={mgmtForm.managerSignature}
+                  checked={!!mgmtForm.managerSignature}
                   onChange={(e) =>
                     onFormChange({
                       ...mgmtForm,

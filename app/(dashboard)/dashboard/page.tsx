@@ -1,7 +1,6 @@
 "use client";
-//todo fix fetching comments and logs for an incident
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -155,6 +154,15 @@ export default function Dashboard() {
     fetchIncidents();
   }, [currentPage, selectedStatusFilter, dateFrom, dateTo]);
 
+  // The backend query param above doesn't actually filter by status, so we
+  // filter the fetched page of incidents client-side before rendering.
+  const filteredIncidents = useMemo(() => {
+    if (selectedStatusFilter === "all") return incidents;
+    return incidents.filter(
+      (incident) => incident.incidentStatus === selectedStatusFilter
+    );
+  }, [incidents, selectedStatusFilter]);
+
   // Reset page counter tracking to avoid offsets overflow boundary conflicts on filter mutations
   const handleStatusSelect = (status: string) => {
     setSelectedStatusFilter(status);
@@ -172,6 +180,7 @@ export default function Dashboard() {
   // Administrative detail record loading orchestration handlers
   const fetchManagementDetails = async (incidentId: number) => {
     setLoadingManagement(true);
+    setManagementReport(null); // Reset layout context strictly to prevent lingering stale logs
     try {
       const res = await fetch(`${API_BASE_URL}/incidents/${incidentId}/management`, {
         method: "GET",
@@ -183,9 +192,11 @@ export default function Dashboard() {
       }
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setManagementReport(data.data);
+      // Backend returns the incident management object directly (no wrapper key)
+      setManagementReport(data);
     } catch {
       toast.error("Failed to load historical management layout context profiles");
+      setManagementReport(null);
     } finally {
       setLoadingManagement(false);
     }
@@ -193,24 +204,29 @@ export default function Dashboard() {
 
   const fetchCommentsAndLogs = async (incidentId: number) => {
     setLoadingLogs(true);
+    setComments([]); // Flush old items on refresh
+    setLogs([]);
     try {
+      // Aligned with the exact routes.go endpoints v1.GET("/incidents/comments") & v1.GET("/incidents/:id/managementlogs")
       const [commentsRes, logsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/incidents/${incidentId}/comments`, {
+        fetch(`${API_BASE_URL}/incidents/comments?incidentId=${incidentId}&incident_id=${incidentId}`, {
           method: "GET",
           headers: getAuthHeaders(),
         }),
-        fetch(`${API_BASE_URL}/incidents/${incidentId}/logs`, {
+        fetch(`${API_BASE_URL}/incidents/${incidentId}/managementlogs`, {
           method: "GET",
           headers: getAuthHeaders(),
         })
       ]);
       if (commentsRes.ok) {
         const cData = await commentsRes.json();
-        setComments(cData.data || []);
+        // Backend wraps the array under "comments", not "data"
+        setComments(cData.comments || []);
       }
       if (logsRes.ok) {
         const lData = await logsRes.json();
-        setLogs(lData.data || []);
+        // Backend wraps the array under "incidentLogs", not "data"
+        setLogs(lData.incidentLogs || []);
       }
     } catch {
       toast.error("Error connecting with timeline verification updates context");
@@ -308,10 +324,14 @@ export default function Dashboard() {
     if (!selectedIncident || !commentText.trim()) return;
     setSubmittingComment(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/incidents/${selectedIncident.id}/comments`, {
+      // Aligned with the exact routes.go v1.POST("/incidents/comments") endpoint definition
+      const res = await fetch(`${API_BASE_URL}/incidents/comments`, {
         method: "POST",
         headers: getAuthHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ commentText: commentText.trim() }),
+        body: JSON.stringify({
+          incidentId: selectedIncident.id,
+          comment: commentText.trim(),
+        }),
       });
       if (!res.ok) throw new Error();
       toast.success("Comment audit entry preserved");
@@ -442,7 +462,7 @@ export default function Dashboard() {
 
         <CardContent className="pt-6">
           <IncidentTable
-            incidents={incidents}
+            incidents={filteredIncidents}
             loading={loading}
             pagination={pagination}
             currentPage={currentPage}
