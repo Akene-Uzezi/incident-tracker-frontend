@@ -341,8 +341,8 @@ export default function LandingReportPage() {
                   <div
                     key={step}
                     className={`h-2 rounded-full transition-all duration-300 ${step <= currentStep
-                        ? "bg-blue-600 w-8"
-                        : "bg-slate-200 dark:bg-slate-700 w-2"
+                      ? "bg-blue-600 w-8"
+                      : "bg-slate-200 dark:bg-slate-700 w-2"
                       }`}
                   />
                 ))}
@@ -495,7 +495,6 @@ export default function LandingReportPage() {
                           <SelectContent>
                             <SelectItem value="Male">Male</SelectItem>
                             <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

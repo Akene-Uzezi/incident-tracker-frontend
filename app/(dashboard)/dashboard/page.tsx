@@ -21,6 +21,16 @@ import { IncidentDetails } from "./IncidentDetails";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_apiurl || "http://localhost:3001/api/v1";
 
+// 1. Defined the User interface at the top level
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  disabled: boolean;
+}
+
 const DEFAULT_MGMT_FORM: Partial<IncidentManagement> = {
   impactOnService: "",
   contributoryFactors: "",
@@ -54,6 +64,20 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(true);
 
+  // 2. Moved the user state and useEffect safely to the top level of the component
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const rawUser = localStorage.getItem("user");
+    if (rawUser) {
+      try {
+        setUser(JSON.parse(rawUser));
+      } catch (e) {
+        console.error("failed to parse user from localStorage", e);
+      }
+    }
+  }, []);
+
   // Filtering States
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("all");
   const [statusDropdownOpen, setStatusDropdownOpen] = useState<boolean>(false);
@@ -63,13 +87,8 @@ export default function Dashboard() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Mock User Session Profile context matching backend authentication states
-  const user = {
-    role: "admin", // "admin", "supervisor", "reporter"
-    department: "Emergency",
-  };
-
-  const canManageReport = user.role === "admin" || user.role === "manager";
+  // 3. Replaced the static mock object; we now check the state-managed user's role safely
+  const canManageReport = user?.role === "admin" || user?.role === "manager";
 
   // Detailed modal management view overlay track states
   const [selectedIncident, setSelectedIncident] = useState<IncidentReport | null>(null);
@@ -133,7 +152,7 @@ export default function Dashboard() {
 
       if (res.status === 401) {
         toast.error("Session expired. Please log in again.");
-        router.push("/auth/login");
+        router.push("/login");
         return;
       }
 
@@ -192,7 +211,6 @@ export default function Dashboard() {
       }
       if (!res.ok) throw new Error();
       const data = await res.json();
-      // Backend returns the incident management object directly (no wrapper key)
       setManagementReport(data);
     } catch {
       toast.error("Failed to load historical management layout context profiles");
@@ -207,7 +225,6 @@ export default function Dashboard() {
     setComments([]); // Flush old items on refresh
     setLogs([]);
     try {
-      // Aligned with the exact routes.go endpoints v1.GET("/incidents/comments") & v1.GET("/incidents/:id/managementlogs")
       const [commentsRes, logsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/incidents/comments?incidentId=${incidentId}&incident_id=${incidentId}`, {
           method: "GET",
@@ -220,12 +237,10 @@ export default function Dashboard() {
       ]);
       if (commentsRes.ok) {
         const cData = await commentsRes.json();
-        // Backend wraps the array under "comments", not "data"
         setComments(cData.comments || []);
       }
       if (logsRes.ok) {
         const lData = await logsRes.json();
-        // Backend wraps the array under "incidentLogs", not "data"
         setLogs(lData.incidentLogs || []);
       }
     } catch {
@@ -319,18 +334,22 @@ export default function Dashboard() {
     }
   };
 
+  // 4. Cleaned up handleCommentSubmit. It now simply references the top-level user state!
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedIncident || !commentText.trim()) return;
     setSubmittingComment(true);
+
     try {
-      // Aligned with the exact routes.go v1.POST("/incidents/comments") endpoint definition
       const res = await fetch(`${API_BASE_URL}/incidents/comments`, {
         method: "POST",
         headers: getAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           incidentId: selectedIncident.id,
           comment: commentText.trim(),
+          userId: user?.id,
+          commentUserName: user?.name,
+          commentUserRole: user?.role,
         }),
       });
       if (!res.ok) throw new Error();
@@ -359,7 +378,6 @@ export default function Dashboard() {
               </p>
             </div>
 
-            {/* Top Right Date Filter Area */}
             <div className="flex flex-wrap items-center gap-2 md:self-start">
               <div className="flex items-center gap-1.5 bg-background border rounded-lg px-2 py-1 shadow-sm">
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
@@ -391,9 +409,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Action Filter Controls Row */}
           <div className="flex items-center justify-between pt-4 mt-2 border-t border-dashed">
-            {/* Shadcn Card Styled Status Dropdown Menu */}
             <div className="relative" ref={dropdownRef}>
               <Button
                 variant="outline"
@@ -447,7 +463,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Decorative Active Filter Feedback Indicator */}
             <div className="text-xs text-muted-foreground hidden sm:block">
               {(selectedStatusFilter !== "all" || dateFrom || dateTo) ? (
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200/40 animate-pulse">
@@ -475,7 +490,7 @@ export default function Dashboard() {
       <IncidentDetails
         incident={selectedIncident}
         isAdmin={canManageReport}
-        userRole={user.role}
+        userRole={user?.role || "reporter"}
         updatingStatus={updatingStatus}
         loadingManagement={loadingManagement}
         managementReport={managementReport}
