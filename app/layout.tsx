@@ -1,11 +1,19 @@
 import React from "react";
 import "@/app/globals.css";
-import { Inter } from "next/font/google";
-import { Toaster } from "sonner";
+import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
+import { Providers } from "@/app/providers";
 
-const inter = Inter({
+const bodyFont = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-body",
+});
+
+const displayFont = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["600", "700", "800", "900"],
+  style: ["normal", "italic"],
 });
 
 export const metadata = {
@@ -19,11 +27,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable}`}>
+    <html
+      lang="en"
+      className={`${bodyFont.variable} ${displayFont.variable}`}
+      suppressHydrationWarning
+    >
       <body className="antialiased">
-        {children}
-
-        <Toaster richColors closeButton />
+        <Providers>
+          {children}
+          <Toaster closeButton position="top-right" />
+        </Providers>
       </body>
     </html>
   );

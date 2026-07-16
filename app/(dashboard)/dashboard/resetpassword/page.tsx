@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Card,
   CardContent,
@@ -11,109 +13,65 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import {
-  Loader2,
-  Mail,
-  KeyRound,
-  AlertTriangle,
-  UserCheck,
-} from "lucide-react";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { Loader2, Mail, KeyRound, AlertTriangle, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { resetPasswordSchema, type ResetPasswordValues } from "@/lib/schemas/users";
+import { useResetPasswordMutation } from "@/lib/api/hooks/use-auth";
+import { ApiError } from "@/lib/api/client";
+import { notify } from "@/lib/toast";
+import type { AuthUser } from "@/lib/types";
 
-interface UserProfile {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  department: string;
-  disabled: boolean;
-}
-
-export default function resetpassword() {
-  const [email, setEmail] = useState("");
-  const [newPassword, setNewPassword] = useState(""); // State for typed password
-  const [isMutating, setIsMutating] = useState(false);
-  const [modifiedUser, setModifiedUser] = useState<UserProfile | null>(null);
+export default function ResetPasswordPage() {
+  const [modifiedUser, setModifiedUser] = useState<AuthUser | null>(null);
   const router = useRouter();
+  const resetMutation = useResetPasswordMutation();
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ResetPasswordValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
-    if (!email.trim()) {
-      toast.error("Please provide a valid email address.");
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      toast.error("The override password must be at least 8 characters long.");
-      return;
-    }
-
-    setIsMutating(true);
+  const onSubmit = (values: ResetPasswordValues) => {
     setModifiedUser(null);
-
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_apiurl}/auth/resetpassword`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            email: email.trim(),
-            password: newPassword, // Sending typed custom password
-          }),
-        },
-      );
-
-      if (res.status === 401) {
-        toast.error("Session expired. Please log in again.");
-        router.replace("/login");
-        return;
-      }
-
-      if (res.status === 403) {
-        toast.error(
-          "Access Forbidden: Only superadmins are allowed to reset passwords.",
-        );
-        return;
-      }
-
-      if (res.status === 404) {
-        toast.error("No account found registered with that email address.");
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error("Server error processing password override.");
-      }
-
-      const data: UserProfile = await res.json();
-      setModifiedUser(data);
-      toast.success(`Password successfully updated for ${data.name}.`);
-
-      // Reset inputs
-      setEmail("");
-      setNewPassword("");
-    } catch (err) {
-      toast.error("Failed to execute password override routine.");
-    } finally {
-      setIsMutating(false);
-    }
+    resetMutation.mutate(values, {
+      onSuccess: (data) => {
+        setModifiedUser(data);
+        notify.success("Password updated", `New password set for ${data.name}.`);
+        reset();
+      },
+      onError: (err) => {
+        if (err instanceof ApiError) {
+          if (err.status === 401) {
+            notify.error("Session expired", "Please log in again.");
+            router.replace("/login");
+            return;
+          }
+          if (err.status === 403) {
+            notify.error("Access forbidden", "Only superadmins may reset passwords.");
+            return;
+          }
+          if (err.status === 404) {
+            notify.error("No account found", "No user is registered with that email address.");
+            return;
+          }
+        }
+        notify.apiError("Password override failed", err);
+      },
+    });
   };
 
   return (
     <div className="w-full max-w-xl mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          System Password Override
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight">System Password Override</h1>
         <p className="text-muted-foreground">
-          Administrative control panel to manually assign new passwords to staff
-          accounts.
+          Administrative control panel to manually assign new passwords to staff accounts.
         </p>
       </div>
 
@@ -124,20 +82,13 @@ export default function resetpassword() {
             <CardTitle>Account Override Terminal</CardTitle>
           </div>
           <CardDescription>
-            Target an account by email and assign their explicit new login
-            credential details below.
+            Target an account by email and assign their explicit new login credential details below.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            {/* Email Field */}
-            <div className="space-y-2">
-              <label
-                htmlFor="email"
-                className="text-sm font-medium leading-none"
-              >
-                Target User Email
-              </label>
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+            <Field data-invalid={!!errors.email}>
+              <FieldLabel htmlFor="email">Target User Email</FieldLabel>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -145,22 +96,15 @@ export default function resetpassword() {
                   type="email"
                   placeholder="employee@company.org"
                   className="pl-9"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isMutating}
-                  required
+                  disabled={resetMutation.isPending}
+                  {...register("email")}
                 />
               </div>
-            </div>
+              <FieldError errors={[errors.email]} />
+            </Field>
 
-            {/* Custom Typed Password Field */}
-            <div className="space-y-2">
-              <label
-                htmlFor="password"
-                className="text-sm font-medium leading-none"
-              >
-                New Assigned Password
-              </label>
+            <Field data-invalid={!!errors.password}>
+              <FieldLabel htmlFor="password">New Assigned Password</FieldLabel>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -168,20 +112,19 @@ export default function resetpassword() {
                   type="password"
                   placeholder="Minimum 8 characters"
                   className="pl-9"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  disabled={isMutating}
-                  required
+                  disabled={resetMutation.isPending}
+                  {...register("password")}
                 />
               </div>
-            </div>
+              <FieldError errors={[errors.password]} />
+            </Field>
 
             <Button
               type="submit"
               className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2 mt-2"
-              disabled={isMutating}
+              disabled={resetMutation.isPending}
             >
-              {isMutating ? (
+              {resetMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Overriding User Password...
@@ -197,22 +140,18 @@ export default function resetpassword() {
         </CardContent>
       </Card>
 
-      {/* Confirmation Block */}
       {modifiedUser && (
         <Card className="border-t-4 border-t-emerald-500 animate-in fade-in-50 duration-200">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
               <UserCheck className="h-5 w-5" />
-              <CardTitle className="text-lg">
-                Override Executed Successfully
-              </CardTitle>
+              <CardTitle className="text-lg">Override Executed Successfully</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="text-sm space-y-2 text-muted-foreground">
             <p>
               The password field for account{" "}
-              <strong className="text-foreground">{modifiedUser.name}</strong> (
-              {modifiedUser.email}) was updated.
+              <strong className="text-foreground">{modifiedUser.name}</strong> ({modifiedUser.email}) was updated.
             </p>
             <div className="p-3 bg-muted rounded-md text-xs font-mono border">
               <div>USER_ID: {modifiedUser.id}</div>
@@ -221,9 +160,8 @@ export default function resetpassword() {
               <div>STATUS: {modifiedUser.disabled ? "DISABLED" : "ACTIVE"}</div>
             </div>
           </CardContent>
-          <CardFooter className="bg-emerald-500/5 px-6 py-3 border-t border-emerald-500/10 text-xs text-emerald-700 dark:text-emerald-400">
-            The database was successfully updated with the custom password you
-            typed.
+          <CardFooter className="bg-emerald-500/5 border-t border-emerald-500/10 text-xs text-emerald-700 dark:text-emerald-400">
+            The database was successfully updated with the custom password you typed.
           </CardFooter>
         </Card>
       )}

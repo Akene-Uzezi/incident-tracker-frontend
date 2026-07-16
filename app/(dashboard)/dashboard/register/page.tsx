@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -20,228 +21,118 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle2, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { Loader2 } from "lucide-react";
+import { registerSchema, ROLE_OPTIONS, type RegisterValues } from "@/lib/schemas/auth";
+import { useRegisterMutation } from "@/lib/api/hooks/use-auth";
+import { notify } from "@/lib/toast";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const registerMutation = useRegisterMutation();
 
-  // Form Field States
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState("");
-  const [department, setDepartment] = useState("");
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<RegisterValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: "", email: "", password: "", role: undefined, department: "" },
+  });
 
-  // UI Status States
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(false);
-
-    // Validation
-    if (!name || !email || !password || !role || !department) {
-      setError("All fields are required.");
-      return;
-    }
-
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_apiurl}/auth/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            name,
-            email,
-            password,
-            role,
-            department,
-          }),
-        },
-      );
-
-      if (response.status === 401) {
-        toast.error("Session expired please login again");
-        router.replace("/login");
-        return;
-      }
-
-      if (response.ok) {
-        setSuccess(true);
-        setTimeout(() => {
-          setSuccess(false);
-        }, 5000);
-        setName("");
-        setEmail("");
-        setPassword("");
-        setRole("");
-        setDepartment("");
-      } else {
-        const data = await response.json();
-        setError(data.error || "Failed to register user. Please try again.");
-        setTimeout(() => {
-          setError(null);
-        }, 5000);
-      }
-    } catch (err) {
-      setError("An architectural or network error occurred. Please try again.");
-      setTimeout(() => {
-        setError(null);
-      }, 5000);
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
+  const onSubmit = (values: RegisterValues) => {
+    registerMutation.mutate(values, {
+      onSuccess: () => {
+        notify.success("User account created", `${values.name} can now sign in.`);
+        reset();
+      },
+      onError: (err) => {
+        if ((err as { status?: number })?.status === 401) {
+          notify.error("Session expired", "Please log in again.");
+          router.replace("/login");
+          return;
+        }
+        notify.apiError("Couldn't register user", err);
+      },
+    });
   };
 
   return (
     <div className="flex justify-center items-center py-6">
-      <Card className="w-full max-w-2xl border-muted-foreground/20 shadow-lg">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            Create User Account
-          </CardTitle>
+      <Card className="w-full max-w-2xl shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold tracking-tight">Create User Account</CardTitle>
           <CardDescription>
-            Register a new personnel member to assign system access levels and
-            departments.
+            Register a new personnel member to assign system access levels and departments.
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <CardContent className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field data-invalid={!!errors.name}>
+                <FieldLabel htmlFor="name">Full Name</FieldLabel>
+                <Input id="name" placeholder="John Doe" disabled={registerMutation.isPending} {...register("name")} />
+                <FieldError errors={[errors.name]} />
+              </Field>
 
-            {success && (
-              <Alert className="border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                <AlertTitle>Success</AlertTitle>
-                <AlertDescription>
-                  User account created successfully!
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Full Name */}
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
-
-              {/* Email Address */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="johndoe@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
+              <Field data-invalid={!!errors.email}>
+                <FieldLabel htmlFor="email">Email Address</FieldLabel>
+                <Input id="email" type="email" placeholder="johndoe@company.com" disabled={registerMutation.isPending} {...register("email")} />
+                <FieldError errors={[errors.email]} />
+              </Field>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Password */}
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field data-invalid={!!errors.password}>
+                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <Input id="password" type="password" placeholder="••••••••" disabled={registerMutation.isPending} {...register("password")} />
+                <FieldError errors={[errors.password]} />
+              </Field>
 
-              {/* Department */}
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Input
-                  id="department"
-                  type="text"
-                  placeholder="Engineering, IT, HR..."
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
+              <Field data-invalid={!!errors.department}>
+                <FieldLabel htmlFor="department">Department</FieldLabel>
+                <Input id="department" placeholder="Engineering, IT, HR..." disabled={registerMutation.isPending} {...register("department")} />
+                <FieldError errors={[errors.department]} />
+              </Field>
             </div>
 
-            {/* Role Assignment */}
-            <div className="space-y-2">
-              <Label htmlFor="role">System Access Role</Label>
-              <Select
-                value={role}
-                onValueChange={(value) => setRole(value)}
-                disabled={isLoading}
-                required
-              >
-                <SelectTrigger id="role" className="w-full">
-                  <SelectValue placeholder="Select an operational role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="reporter">Reporter</SelectItem>
-                  <SelectItem value="supervisor">Supervisor</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="superadmin">Super Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Field data-invalid={!!errors.role}>
+              <FieldLabel htmlFor="role">System Access Role</FieldLabel>
+              <Controller
+                control={control}
+                name="role"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange} disabled={registerMutation.isPending}>
+                    <SelectTrigger id="role" className="w-full">
+                      <SelectValue placeholder="Select an operational role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLE_OPTIONS.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldError errors={[errors.role]} />
+            </Field>
           </CardContent>
-          <CardFooter className="flex justify-end gap-3 border-t pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isLoading}
-              onClick={() => router.push("/dashboard")}
-            >
+          <CardFooter className="flex justify-end gap-3">
+            <Button type="button" variant="outline" disabled={registerMutation.isPending} onClick={() => router.push("/dashboard")}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Registering..." : "Register User"}
+            <Button type="submit" disabled={registerMutation.isPending}>
+              {registerMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Registering...
+                </>
+              ) : (
+                "Register User"
+              )}
             </Button>
           </CardFooter>
         </form>

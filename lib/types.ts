@@ -7,6 +7,12 @@ export const VALID_STATUSES: { value: IncidentStatus; label: string }[] = [
   { value: "resolved", label: "Resolved" },
 ];
 
+export const formatStatusText = (status: IncidentStatus): string => {
+  if (status === "inprogress") return "In Progress";
+  if (status === "resolved") return "Resolved";
+  return "Unresolved";
+};
+
 export interface IncidentReport {
   id: number;
   principalName: string;
@@ -91,35 +97,32 @@ export interface IncidentResponse {
   pagination: PaginationMeta;
 }
 
-// Shared badge helpers used across components
-export const getSeverityBadgeClass = (severity: SeverityLevel): string => {
-  switch (severity) {
-    case "critical":
-      return "bg-red-50 text-red-700 border border-red-200/60";
-    case "major":
-      return "bg-orange-50 text-orange-700 border border-orange-200/60";
-    case "minor":
-      return "bg-blue-50 text-blue-700 border border-blue-200/60";
-    case "near miss":
-      return "bg-zinc-50 text-zinc-600 border border-zinc-200/60";
-    default:
-      return "bg-zinc-50 text-zinc-600";
-  }
-};
+export interface IncidentComment {
+  id?: number;
+  incidentId: number;
+  comment: string;
+  userId?: number;
+  commentUserName?: string;
+  commentUserRole?: string;
+  createdAt?: string;
+}
 
-export const getStatusBadgeClass = (status: IncidentStatus): string => {
-  switch (status) {
-    case "resolved":
-      return "bg-emerald-50 text-emerald-700 border border-emerald-200/60";
-    case "inprogress":
-      return "bg-amber-50 text-amber-700 border border-amber-200/60";
-    default:
-      return "bg-rose-50 text-rose-700 border border-rose-200/60";
-  }
-};
+export interface IncidentLog {
+  id: number;
+  incidentId: number;
+  action: string;
+  changedBy: number;
+  userName?: string;
+  oldValue?: unknown;
+  newValue?: unknown;
+  createdAt?: string;
+}
 
-export const formatStatusText = (status: IncidentStatus): string => {
-  if (status === "inprogress") return "In Progress";
-  if (status === "resolved") return "Resolved";
-  return "Unresolved";
-};
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  disabled: boolean;
+}

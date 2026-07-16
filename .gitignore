@@ -47,3 +47,4 @@ kiloimages/
 
 #report document
 reportform.docx
+.env.local

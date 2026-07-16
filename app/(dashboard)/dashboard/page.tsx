@@ -1,398 +1,96 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Calendar, X, Filter } from "lucide-react";
-
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
-  IncidentReport,
-  IncidentManagement,
-  IncidentStatus,
-  PaginationMeta,
-  IncidentResponse,
-  formatStatusText,
-  VALID_STATUSES,
-} from "./types";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Calendar, ChevronDown, Filter, X } from "lucide-react";
+import { IncidentReport, IncidentStatus, VALID_STATUSES, formatStatusText } from "@/lib/types";
+import { useIncidentsQuery } from "@/lib/api/hooks/use-incidents";
 import { IncidentTable } from "./IncidentTable";
 import { IncidentDetails } from "./IncidentDetails";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_apiurl || "http://localhost:3001/api/v1";
-
-// 1. Defined the User interface at the top level
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  department: string;
-  disabled: boolean;
-}
-
-const DEFAULT_MGMT_FORM: Partial<IncidentManagement> = {
-  impactOnService: "",
-  contributoryFactors: "",
-  actionsTakenOutcomes: "",
-  recommendations: "",
-  lessonsLearned: "",
-  informedPatient: false,
-  informedRelative: false,
-  informedSeniorManager: false,
-  informedPharmacist: false,
-  policeIncidentNumber: "",
-  informedOther: "",
-  riskSeverity: 1,
-  riskLikelihood: 1,
-  riskRating: 1,
-  ohsAbsenceOver3Days: false,
-  ohsActOfViolenceOrDanger: false,
-  ohsHospitalizationOver24Hours: false,
-  ohsStaffName: "",
-  ohsStaffDob: "",
-  ohsStaffAddress: "",
-  managerName: "",
-  managerSignature: false,
-  managerDesignation: "",
-  managerDate: new Date().toISOString().split("T")[0],
-};
-
 export default function Dashboard() {
-  const [incidents, setIncidents] = useState<IncidentReport[]>([]);
-  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  // 2. Moved the user state and useEffect safely to the top level of the component
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const rawUser = localStorage.getItem("user");
-    if (rawUser) {
-      try {
-        setUser(JSON.parse(rawUser));
-      } catch (e) {
-        console.error("failed to parse user from localStorage", e);
-      }
-    }
-  }, []);
-
-  // Filtering States
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("all");
-  const [statusDropdownOpen, setStatusDropdownOpen] = useState<boolean>(false);
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
-
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
-
-  // 3. Replaced the static mock object; we now check the state-managed user's role safely
-  const canManageReport = user?.role === "admin" || user?.role === "manager";
-
-  // Detailed modal management view overlay track states
   const [selectedIncident, setSelectedIncident] = useState<IncidentReport | null>(null);
-  const [updatingStatus, setUpdatingStatus] = useState<boolean>(false);
-  const [loadingManagement, setLoadingManagement] = useState<boolean>(false);
-  const [managementReport, setManagementReport] = useState<IncidentManagement | null>(null);
 
-  const [isAddingManagement, setIsAddingManagement] = useState<boolean>(false);
-  const [isEditingManagement, setIsEditingManagement] = useState<boolean>(false);
-  const [submittingManagement, setSubmittingManagement] = useState<boolean>(false);
-  const [mgmtForm, setMgmtForm] = useState<Partial<IncidentManagement>>(DEFAULT_MGMT_FORM);
+  const { data, isLoading } = useIncidentsQuery({
+    page: currentPage,
+    status: selectedStatusFilter,
+    dateFrom,
+    dateTo,
+  });
 
-  // Communication comments audit tracking logs states
-  const [comments, setComments] = useState<any[]>([]);
-  const [commentText, setCommentText] = useState<string>("");
-  const [isAddingComment, setIsAddingComment] = useState<boolean>(false);
-  const [submittingComment, setSubmittingComment] = useState<boolean>(false);
-  const [logs, setLogs] = useState<any[]>([]);
-  const [loadingLogs, setLoadingLogs] = useState<boolean>(false);
+  const incidents = data?.data ?? [];
+  const pagination = data?.pagination ?? null;
 
-  // Helper to fetch the secure token from local storage
-  const getAuthHeaders = (extraHeaders = {}) => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    return {
-      "Authorization": `Bearer ${token || ""}`,
-      ...extraHeaders,
-    };
-  };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setStatusDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Fetch metrics synced contextually against Go backend parameters
-  const fetchIncidents = async () => {
-    setLoading(true);
-    try {
-      let url = `${API_BASE_URL}/incidents?page=${currentPage}&limit=10`;
-
-      if (selectedStatusFilter !== "all") {
-        url += `&status=${selectedStatusFilter}`;
-      }
-      if (dateFrom) {
-        url += `&dateFrom=${dateFrom}`;
-      }
-      if (dateTo) {
-        url += `&dateTo=${dateTo}`;
-      }
-
-      const res = await fetch(url, {
-        method: "GET",
-        headers: getAuthHeaders(),
-      });
-
-      if (res.status === 401) {
-        toast.error("Session expired. Please log in again.");
-        router.push("/login");
-        return;
-      }
-
-      if (!res.ok) throw new Error("Failed to pull analytical records");
-      const data: IncidentResponse = await res.json();
-
-      setIncidents(data.data || []);
-      setPagination(data.pagination || null);
-    } catch (err: any) {
-      toast.error(err.message || "Could not complete lookup loop sequence");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Effect hooks watching structural state shifts
-  useEffect(() => {
-    fetchIncidents();
-  }, [currentPage, selectedStatusFilter, dateFrom, dateTo]);
-
-  // The backend query param above doesn't actually filter by status, so we
+  // The backend query param doesn't reliably filter by status, so we
   // filter the fetched page of incidents client-side before rendering.
-  const filteredIncidents = useMemo(() => {
-    if (selectedStatusFilter === "all") return incidents;
-    return incidents.filter(
-      (incident) => incident.incidentStatus === selectedStatusFilter
-    );
-  }, [incidents, selectedStatusFilter]);
+  const filteredIncidents =
+    selectedStatusFilter === "all"
+      ? incidents
+      : incidents.filter((incident) => incident.incidentStatus === selectedStatusFilter);
 
-  // Reset page counter tracking to avoid offsets overflow boundary conflicts on filter mutations
   const handleStatusSelect = (status: string) => {
     setSelectedStatusFilter(status);
     setCurrentPage(1);
-    setStatusDropdownOpen(false);
   };
 
   const clearDateFilters = () => {
     setDateFrom("");
     setDateTo("");
     setCurrentPage(1);
-    toast.success("Date range criteria cleared");
   };
 
-  // Administrative detail record loading orchestration handlers
-  const fetchManagementDetails = async (incidentId: number) => {
-    setLoadingManagement(true);
-    setManagementReport(null); // Reset layout context strictly to prevent lingering stale logs
-    try {
-      const res = await fetch(`${API_BASE_URL}/incidents/${incidentId}/management`, {
-        method: "GET",
-        headers: getAuthHeaders(),
-      });
-      if (res.status === 404) {
-        setManagementReport(null);
-        return;
-      }
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setManagementReport(data);
-    } catch {
-      toast.error("Failed to load historical management layout context profiles");
-      setManagementReport(null);
-    } finally {
-      setLoadingManagement(false);
-    }
-  };
-
-  const fetchCommentsAndLogs = async (incidentId: number) => {
-    setLoadingLogs(true);
-    setComments([]); // Flush old items on refresh
-    setLogs([]);
-    try {
-      const [commentsRes, logsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/incidents/comments?incidentId=${incidentId}&incident_id=${incidentId}`, {
-          method: "GET",
-          headers: getAuthHeaders(),
-        }),
-        fetch(`${API_BASE_URL}/incidents/${incidentId}/managementlogs`, {
-          method: "GET",
-          headers: getAuthHeaders(),
-        })
-      ]);
-      if (commentsRes.ok) {
-        const cData = await commentsRes.json();
-        setComments(cData.comments || []);
-      }
-      if (logsRes.ok) {
-        const lData = await logsRes.json();
-        setLogs(lData.incidentLogs || []);
-      }
-    } catch {
-      toast.error("Error connecting with timeline verification updates context");
-    } finally {
-      setLoadingLogs(false);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedIncident) {
-      fetchManagementDetails(selectedIncident.id);
-      fetchCommentsAndLogs(selectedIncident.id);
-      setIsAddingManagement(false);
-      setIsEditingManagement(false);
-      setMgmtForm(DEFAULT_MGMT_FORM);
-    }
-  }, [selectedIncident]);
-
-  const handleStatusChange = async (newStatus: IncidentStatus) => {
-    if (!selectedIncident) return;
-    setUpdatingStatus(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/incidents/${selectedIncident.id}/status`, {
-        method: "PATCH",
-        headers: getAuthHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ incidentStatus: newStatus }),
-      });
-      if (!res.ok) throw new Error();
-      toast.success(`Workflow status updated successfully to ${formatStatusText(newStatus)}`);
-      setSelectedIncident((prev) => prev ? { ...prev, incidentStatus: newStatus } : null);
-      fetchIncidents();
-    } catch {
-      toast.error("Critical access authority error editing process variables");
-    } finally {
-      setUpdatingStatus(false);
-    }
-  };
-
-  const handleManagementSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedIncident) return;
-    setSubmittingManagement(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/incidents/${selectedIncident.id}/management`, {
-        method: "POST",
-        headers: getAuthHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify(mgmtForm),
-      });
-      if (!res.ok) throw new Error();
-      toast.success("Administrative management parameters authorized smoothly");
-      setIsAddingManagement(false);
-      fetchManagementDetails(selectedIncident.id);
-    } catch {
-      toast.error("Process error handling context save operations validation loop");
-    } finally {
-      setSubmittingManagement(false);
-    }
-  };
-
-  const handleManagementUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedIncident || !managementReport) return;
-    setSubmittingManagement(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/incidents/${selectedIncident.id}/management`, {
-        method: "PUT",
-        headers: getAuthHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify(mgmtForm),
-      });
-      if (!res.ok) throw new Error();
-      toast.success("Management revision block committed to ledger");
-      setIsEditingManagement(false);
-      fetchManagementDetails(selectedIncident.id);
-    } catch {
-      toast.error("Error processing tracking changes back online");
-    } finally {
-      setSubmittingManagement(false);
-    }
-  };
-
-  const handleStartEditingManagement = () => {
-    if (managementReport) {
-      setMgmtForm({
-        ...managementReport,
-        managerDate: managementReport.managerDate
-          ? managementReport.managerDate.split("T")[0]
-          : new Date().toISOString().split("T")[0],
-      });
-      setIsEditingManagement(true);
-    }
-  };
-
-  // 4. Cleaned up handleCommentSubmit. It now simply references the top-level user state!
-  const handleCommentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedIncident || !commentText.trim()) return;
-    setSubmittingComment(true);
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/incidents/comments`, {
-        method: "POST",
-        headers: getAuthHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({
-          incidentId: selectedIncident.id,
-          comment: commentText.trim(),
-          userId: user?.id,
-          commentUserName: user?.name,
-          commentUserRole: user?.role,
-        }),
-      });
-      if (!res.ok) throw new Error();
-      toast.success("Comment audit entry preserved");
-      setCommentText("");
-      setIsAddingComment(false);
-      fetchCommentsAndLogs(selectedIncident.id);
-    } catch {
-      toast.error("Internal transaction error validating system messaging fields");
-    } finally {
-      setSubmittingComment(false);
-    }
-  };
+  const hasActiveFilters = selectedStatusFilter !== "all" || dateFrom || dateTo;
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <Card className="shadow-sm border-muted">
-        <CardHeader className="pb-4 border-b border-muted bg-muted/20">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="max-w-7xl mx-auto space-y-6">
+      <Card>
+        <CardHeader className="border-b bg-muted/20 pb-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
                 Incident Control Room Logs
               </CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 Monitor clinical risk profiles, workflows, and administrative resolutions.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 md:self-start">
-              <div className="flex items-center gap-1.5 bg-background border rounded-lg px-2 py-1 shadow-sm">
+              <div className="flex items-center gap-1.5 rounded-lg border bg-background px-2 py-1 shadow-sm">
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                <input
+                <Input
                   type="date"
                   value={dateFrom}
-                  onChange={(e) => { setDateFrom(e.target.value); setCurrentPage(1); }}
-                  className="text-xs bg-transparent border-none outline-none focus:ring-0 w-28 text-foreground"
+                  onChange={(e) => {
+                    setDateFrom(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="h-6 w-28 border-none bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
                 />
-                <span className="text-xs text-muted-foreground font-medium px-0.5">to</span>
-                <input
+                <span className="px-0.5 text-xs font-medium text-muted-foreground">to</span>
+                <Input
                   type="date"
                   value={dateTo}
-                  onChange={(e) => { setDateTo(e.target.value); setCurrentPage(1); }}
-                  className="text-xs bg-transparent border-none outline-none focus:ring-0 w-28 text-foreground"
+                  onChange={(e) => {
+                    setDateTo(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="h-6 w-28 border-none bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
                 />
               </div>
 
@@ -400,7 +98,7 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   onClick={clearDateFilters}
-                  className="h-8 px-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50/50 flex items-center gap-1"
+                  className="h-8 gap-1 px-2 text-xs text-rose-600 hover:bg-rose-50/50 hover:text-rose-700"
                 >
                   <X className="h-3.5 w-3.5" />
                   Clear Dates
@@ -409,65 +107,49 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-4 mt-2 border-t border-dashed">
-            <div className="relative" ref={dropdownRef}>
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                className="text-xs h-8 px-3 font-medium transition-all duration-150 flex items-center gap-2 shadow-sm"
-              >
-                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-                <span>
-                  Status:{" "}
-                  <strong className="text-emerald-700 dark:text-emerald-400">
-                    {selectedStatusFilter === "all"
-                      ? "All Logs"
-                      : formatStatusText(selectedStatusFilter as IncidentStatus)}
-                  </strong>
-                </span>
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-200" />
-              </Button>
-
-              {statusDropdownOpen && (
-                <Card className="absolute left-0 mt-1.5 w-48 z-50 shadow-md border border-muted p-1 bg-popover text-popover-foreground animate-in fade-in-50 slide-in-from-top-1">
-                  <div className="text-[10px] font-semibold text-muted-foreground px-2 py-1.5 uppercase tracking-wider border-b border-muted/50 mb-1">
-                    Select Workflow View
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleStatusSelect("all")}
-                    className={`w-full text-left text-xs px-2 py-1.5 rounded-md transition-colors flex items-center justify-between ${selectedStatusFilter === "all"
-                      ? "bg-emerald-50 text-emerald-700 font-medium dark:bg-emerald-950/40 dark:text-emerald-400"
-                      : "hover:bg-muted text-foreground"
-                      }`}
+          <div className="mt-2 flex items-center justify-between border-t border-dashed pt-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-8 gap-2 px-3 text-xs font-medium shadow-sm">
+                  <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>
+                    Status:{" "}
+                    <strong className="text-primary">
+                      {selectedStatusFilter === "all"
+                        ? "All Logs"
+                        : formatStatusText(selectedStatusFilter as IncidentStatus)}
+                    </strong>
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider">
+                  Select Workflow View
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleStatusSelect("all")} className="justify-between">
+                  All Logs
+                  {selectedStatusFilter === "all" && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                </DropdownMenuItem>
+                {VALID_STATUSES.map((st) => (
+                  <DropdownMenuItem
+                    key={st.value}
+                    onClick={() => handleStatusSelect(st.value)}
+                    className="justify-between"
                   >
-                    <span>All Logs</span>
-                    {selectedStatusFilter === "all" && <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />}
-                  </button>
-                  {VALID_STATUSES.map((st) => (
-                    <button
-                      key={st.value}
-                      type="button"
-                      onClick={() => handleStatusSelect(st.value)}
-                      className={`w-full text-left text-xs px-2 py-1.5 rounded-md transition-colors flex items-center justify-between ${selectedStatusFilter === st.value
-                        ? "bg-emerald-50 text-emerald-700 font-medium dark:bg-emerald-950/40 dark:text-emerald-400"
-                        : "hover:bg-muted text-foreground"
-                        }`}
-                    >
-                      <span>{st.label}</span>
-                      {selectedStatusFilter === st.value && <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />}
-                    </button>
-                  ))}
-                </Card>
-              )}
-            </div>
+                    {st.label}
+                    {selectedStatusFilter === st.value && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-            <div className="text-xs text-muted-foreground hidden sm:block">
-              {(selectedStatusFilter !== "all" || dateFrom || dateTo) ? (
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200/40 animate-pulse">
-                  System criteria tuning active
-                </span>
+            <div className="hidden text-xs text-muted-foreground sm:block">
+              {hasActiveFilters ? (
+                <Badge variant="outline" className="border-amber-200/70 bg-amber-50 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400">
+                  Filters active
+                </Badge>
               ) : (
                 <span className="text-[11px]">Displaying exhaustive operational ledger</span>
               )}
@@ -478,7 +160,7 @@ export default function Dashboard() {
         <CardContent className="pt-6">
           <IncidentTable
             incidents={filteredIncidents}
-            loading={loading}
+            loading={isLoading}
             pagination={pagination}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
@@ -487,37 +169,7 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      <IncidentDetails
-        incident={selectedIncident}
-        isAdmin={canManageReport}
-        userRole={user?.role || "reporter"}
-        updatingStatus={updatingStatus}
-        loadingManagement={loadingManagement}
-        managementReport={managementReport}
-        isAddingManagement={isAddingManagement}
-        isEditingManagement={isEditingManagement}
-        submittingManagement={submittingManagement}
-        mgmtForm={mgmtForm}
-        comments={comments}
-        commentText={commentText}
-        isAddingComment={isAddingComment}
-        submittingComment={submittingComment}
-        logs={logs}
-        loadingLogs={loadingLogs}
-        onClose={() => setSelectedIncident(null)}
-        onStatusChange={handleStatusChange}
-        onFormChange={setMgmtForm}
-        onManagementSubmit={handleManagementSubmit}
-        onManagementUpdate={handleManagementUpdate}
-        onStartAdding={() => setIsAddingManagement(true)}
-        onCancelAdding={() => setIsAddingManagement(false)}
-        onStartEditing={handleStartEditingManagement}
-        onCancelEditing={() => setIsEditingManagement(false)}
-        onCommentTextChange={setCommentText}
-        onCommentSubmit={handleCommentSubmit}
-        onStartAddingComment={() => setIsAddingComment(true)}
-        onCancelAddingComment={() => setIsAddingComment(false)}
-      />
+      <IncidentDetails incident={selectedIncident} onClose={() => setSelectedIncident(null)} />
     </div>
   );
 }

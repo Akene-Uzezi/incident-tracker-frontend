@@ -2,11 +2,15 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
+import { useForm, Controller, type Control, type UseFormRegister } from "react-hook-form";
+import type { FieldError as RHFFieldError } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -22,330 +26,255 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { LogIn, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Field, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
+import { LogIn, Loader2, ShieldCheck } from "lucide-react";
+import {
+  incidentReportSchema,
+  INCIDENT_REPORT_DEFAULTS,
+  STEP_FIELDS,
+  type IncidentReportValues,
+} from "@/lib/schemas/incident-report";
+import { useCreateIncidentReportMutation } from "@/lib/api/hooks/use-incident-report";
+import { useAuthToken } from "@/lib/store/auth-store";
+import { notify } from "@/lib/toast";
+import { ThemeToggle } from "@/components/theme-toggle";
+
+const STEP_LABELS = ["Reporter & Person", "Incident & Witnesses", "Causes & Equipment"];
+
+function TextField({
+  id,
+  label,
+  required,
+  type = "text",
+  placeholder,
+  register,
+  error,
+  disabled,
+  className,
+}: {
+  id: keyof IncidentReportValues;
+  label: string;
+  required?: boolean;
+  type?: string;
+  placeholder?: string;
+  register: UseFormRegister<IncidentReportValues>;
+  error?: RHFFieldError;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <Field data-invalid={!!error} className={className}>
+      <FieldLabel htmlFor={id} className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        {label} {required && <span className="text-destructive">*</span>}
+      </FieldLabel>
+      <Input
+        id={id}
+        type={type}
+        placeholder={placeholder}
+        disabled={disabled}
+        aria-invalid={!!error}
+        className="h-11 px-4 rounded-xl"
+        {...register(id)}
+      />
+      <FieldError errors={[error]} />
+    </Field>
+  );
+}
+
+function SelectField({
+  id,
+  label,
+  required,
+  control,
+  error,
+  disabled,
+  placeholder,
+  options,
+}: {
+  id: keyof IncidentReportValues;
+  label: string;
+  required?: boolean;
+  control: Control<IncidentReportValues>;
+  error?: RHFFieldError;
+  disabled?: boolean;
+  placeholder: string;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <Field data-invalid={!!error}>
+      <FieldLabel htmlFor={id} className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        {label} {required && <span className="text-destructive">*</span>}
+      </FieldLabel>
+      <Controller
+        control={control}
+        name={id}
+        render={({ field }) => (
+          <Select
+            value={typeof field.value === "string" ? field.value : ""}
+            onValueChange={field.onChange}
+            disabled={disabled}
+          >
+            <SelectTrigger id={id} className="h-11 w-full rounded-xl px-4" aria-invalid={!!error}>
+              <SelectValue placeholder={placeholder} />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      />
+      <FieldError errors={[error]} />
+    </Field>
+  );
+}
+
+function CheckboxField({
+  id,
+  label,
+  control,
+  error,
+  disabled,
+  required,
+}: {
+  id: keyof IncidentReportValues;
+  label: React.ReactNode;
+  control: Control<IncidentReportValues>;
+  error?: RHFFieldError;
+  disabled?: boolean;
+  required?: boolean;
+}) {
+  return (
+    <Controller
+      control={control}
+      name={id}
+      render={({ field }) => (
+        <Field orientation="horizontal" data-invalid={!!error} className="items-start">
+          <Checkbox
+            id={id}
+            checked={!!field.value}
+            onCheckedChange={field.onChange}
+            disabled={disabled}
+          />
+          <FieldLabel htmlFor={id} className="text-sm font-medium">
+            {label} {required && <span className="text-destructive">*</span>}
+          </FieldLabel>
+        </Field>
+      )}
+    />
+  );
+}
 
 export default function LandingReportPage() {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [success, setSuccess] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
+  const token = useAuthToken();
+  const createReport = useCreateIncidentReportMutation();
 
-  // Step 1: Reporter Details
-  const [reporterName, setReporterName] = useState("");
-  const [reporterDesignation, setReporterDesignation] = useState("");
-  const [reporterInfo, setReporterInfo] = useState("");
-  const [reporterDate, setReporterDate] = useState("");
-  const [signature, setSignature] = useState(false);
+  const {
+    register,
+    control,
+    handleSubmit,
+    trigger,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<IncidentReportValues>({
+    resolver: zodResolver(incidentReportSchema),
+    defaultValues: INCIDENT_REPORT_DEFAULTS,
+    mode: "onSubmit",
+  });
 
-  // Step 1: Principal Person Involved Details
-  const [principalName, setPrincipalName] = useState("");
-  const [principalGender, setPrincipalGender] = useState("");
-  const [principalDob, setPrincipalDob] = useState("");
-  const [principalType, setPrincipalType] = useState("");
-  const [patientId, setPatientId] = useState("");
-  const [patientWardDept, setPatientWardDept] = useState("");
-  const [staffJobTitle, setStaffJobTitle] = useState("");
-  const [staffPhone, setStaffPhone] = useState("");
-  const [staffPlaceOfWork, setStaffPlaceOfWork] = useState("");
-  const [staffSite, setStaffSite] = useState("");
+  const principalType = watch("principalType");
+  const isLoading = createReport.isPending;
 
-  // Step 2: Incident Specifics & Witnesses
-  const [dateOfIncident, setDateOfIncident] = useState("");
-  const [timeOfIncident, setTimeOfIncident] = useState("");
-  const [locationOfIncident, setLocationOfIncident] = useState("");
-  const [incidentWardDept, setIncidentWardDept] = useState("");
-  const [severityLevel, setSeverityLevel] = useState("");
-  const [incidentStatus, setIncidentStatus] = useState("unresolved");
-  const [isNearMiss, setIsNearMiss] = useState(false);
+  const nextStep = async () => {
+    const valid = await trigger(STEP_FIELDS[currentStep]);
+    if (valid) setCurrentStep((s) => (s < 3 ? ((s + 1) as 1 | 2 | 3) : s));
+  };
 
-  const [witnesses, setWitnesses] = useState("");
-  const [witnessType, setWitnessType] = useState("");
-  const [witnessWardDept, setWitnessWardDept] = useState("");
-  const [witnessJobTitle, setWitnessJobTitle] = useState("");
-  const [witnessPhone, setWitnessPhone] = useState("");
+  const prevStep = () => setCurrentStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3) : s));
 
-  // Step 3: Factual Analysis & Equipment Details
-  const [causeGroup, setCauseGroup] = useState("");
-  const [causes, setCauses] = useState("");
-  const [prescribingDoctor, setPrescribingDoctor] = useState("");
-  const [treatmentReceived, setTreatmentReceived] = useState("");
-  const [peopleInvolved, setPeopleInvolved] = useState("");
-
-  const [equipmentInvolved, setEquipmentInvolved] = useState("");
-  const [equipmentModel, setEquipmentModel] = useState("");
-  const [equipmentNumber, setEquipmentNumber] = useState("");
-  const [isMedicalDevice, setIsMedicalDevice] = useState("");
-  const [equipmentSentForRepair, setEquipmentSentForRepair] = useState(false);
-  const [equipmentWithdrawn, setEquipmentWithdrawn] = useState(false);
-  const [equipmentRetained, setEquipmentRetained] = useState(false);
+  const onSubmit = (values: IncidentReportValues) => {
+    createReport.mutate(values, {
+      onSuccess: () => {
+        setSuccess(true);
+        notify.success("Report submitted", "Your incident report has been logged into the system.");
+        reset(INCIDENT_REPORT_DEFAULTS);
+        setCurrentStep(1);
+      },
+      onError: (err) => {
+        notify.apiError("Submission failed", err);
+      },
+    });
+  };
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    setToken(storedToken);
-  }, []);
-
-  const validateStep = (step: number): boolean => {
-    if (step === 1) {
-      if (
-        !reporterName ||
-        !reporterDesignation ||
-        !reporterInfo ||
-        !reporterDate ||
-        !signature ||
-        !principalName ||
-        !principalGender ||
-        !principalDob ||
-        !principalType
-      ) {
-        setError("Please complete all required fields for Step 1.");
-        return false;
-      }
+    if (success) {
+      const t = setTimeout(() => setSuccess(false), 6000);
+      return () => clearTimeout(t);
     }
-    if (step === 2) {
-      if (
-        !dateOfIncident ||
-        !timeOfIncident ||
-        !locationOfIncident ||
-        !incidentWardDept ||
-        !severityLevel ||
-        !incidentStatus
-      ) {
-        setError("Please complete all required fields for Step 2.");
-        return false;
-      }
-    }
-    if (step === 3) {
-      if (
-        !causeGroup ||
-        !causes ||
-        !treatmentReceived ||
-        !equipmentInvolved ||
-        !peopleInvolved
-      ) {
-        setError("Please complete all required fields for Step 3.");
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const nextStep = () => {
-    setError(null);
-    if (validateStep(currentStep)) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const prevStep = () => {
-    setCurrentStep(currentStep - 1);
-    setError(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(false);
-
-    if (!validateStep(currentStep)) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_apiurl}/incidents`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            principalName,
-            principalGender,
-            principalDob,
-            principalType,
-            patientId,
-            patientWardDept,
-            staffJobTitle,
-            staffPhone,
-            staffPlaceOfWork,
-            staffSite,
-            peopleInvolved,
-            dateOfIncident,
-            timeOfIncident,
-            locationOfIncident,
-            incidentWardDept,
-            witnesses,
-            witnessType,
-            witnessWardDept,
-            witnessJobTitle,
-            witenssPhone: witnessPhone,
-            isNearMiss,
-            causeGroup,
-            causes,
-            prescribingDoctor,
-            treatmentReceived,
-            equipmentInvolved,
-            equipmentModel,
-            equipmentSentForRepair,
-            equipmentWithdrawn,
-            equipmentRetained,
-            equipmentNumber,
-            isMedicalDevice,
-            reporterName,
-            reporterDesignation,
-            signature,
-            reporterInfo,
-            date: reporterDate,
-            severityLevel,
-            incidentStatus,
-          }),
-        },
-      );
-
-      if (response.ok) {
-        setSuccess(true);
-        toast.success("Report submitted");
-        resetForm();
-      } else {
-        const data = await response.json();
-        toast.error(data.message || "Failed to submit report. Please try again");
-        setError(data.message || "Failed to submit report. Please try again.");
-      }
-    } catch (err) {
-      toast.error("A connection issue occurred. Please check your network and try again");
-      setError(
-        "A connection issue occurred. Please check your network and try again.",
-      );
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const resetForm = () => {
-    setCurrentStep(1);
-    setReporterName("");
-    setReporterDesignation("");
-    setReporterInfo("");
-    setReporterDate("");
-    setSignature(false);
-    setPrincipalName("");
-    setPrincipalGender("");
-    setPrincipalDob("");
-    setPrincipalType("");
-    setPatientId("");
-    setPatientWardDept("");
-    setStaffJobTitle("");
-    setStaffPhone("");
-    setStaffPlaceOfWork("");
-    setStaffSite("");
-    setDateOfIncident("");
-    setTimeOfIncident("");
-    setLocationOfIncident("");
-    setIncidentWardDept("");
-    setSeverityLevel("");
-    setIncidentStatus("unresolved");
-    setIsNearMiss(false);
-    setWitnesses("");
-    setWitnessType("");
-    setWitnessWardDept("");
-    setWitnessJobTitle("");
-    setWitnessPhone("");
-    setCauseGroup("");
-    setCauses("");
-    setPrescribingDoctor("");
-    setTreatmentReceived("");
-    setPeopleInvolved("");
-    setEquipmentInvolved("");
-    setEquipmentModel("");
-    setEquipmentNumber("");
-    setIsMedicalDevice("");
-    setEquipmentSentForRepair(false);
-    setEquipmentWithdrawn(false);
-    setEquipmentRetained(false);
-  };
-
-  const inputClassName =
-    "h-11 px-4 rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 focus-visible:ring-blue-600 focus-visible:border-blue-600 transition-all";
-  const labelClassName =
-    "text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400";
+  }, [success]);
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-950 flex flex-col">
+    <div className="min-h-screen w-full bg-background flex flex-col">
       <header className="w-full bg-background border-b sticky top-0 z-50 px-4 lg:px-8 h-16 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
-          <img
-            src="/images/rhv logo.png"
-            alt="RHV Logo"
-            width={90}
-            height={24}
-            className="h-6 w-auto"
-          />
+          <img src="/images/rhv logo.png" alt="RHV Logo" width={90} height={24} className="h-6 w-auto" />
           <span>IncidentTracker</span>
         </div>
-        {token ? (
-          <Link href="/dashboard" passHref>
-            <Button variant="outline" size="sm" className="gap-2">
-              <LogIn className="h-4 w-4" />
-              Dashboard
-            </Button>
-          </Link>
-        ) : (
-          <Link href="/login" passHref>
-            <Button variant="outline" size="sm" className="gap-2">
-              <LogIn className="h-4 w-4" />
-              Personnel Login
-            </Button>
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {token ? (
+            <Link href="/dashboard" passHref>
+              <Button variant="outline" size="sm" className="gap-2">
+                <LogIn className="h-4 w-4" />
+                Dashboard
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/login" passHref>
+              <Button variant="outline" size="sm" className="gap-2">
+                <LogIn className="h-4 w-4" />
+                Personnel Login
+              </Button>
+            </Link>
+          )}
+        </div>
       </header>
 
       <main className="flex-1 flex justify-center items-start p-4 sm:p-6 lg:p-8">
-        <Card className="w-full max-w-4xl border-muted-foreground/20 shadow-xl bg-background">
+        <Card className="w-full max-w-4xl shadow-xl">
           <CardHeader className="space-y-1 text-center border-b pb-6">
             <CardTitle className="text-3xl font-extrabold tracking-tight text-foreground">
               RHV Hospital Incident Reporting Form
             </CardTitle>
             <CardDescription className="text-base max-w-2xl mx-auto">
-              Please use this form to safely record occurrences, injuries,
-              damages, or near-miss scenarios immediately following an incident.
+              Please use this form to safely record occurrences, injuries, damages, or near-miss
+              scenarios immediately following an incident.
             </CardDescription>
           </CardHeader>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <CardContent className="space-y-6 pt-6">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Submission Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
               {success && (
-                <Alert className="border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  <AlertTitle>Success</AlertTitle>
-                  <AlertDescription>
-                    Your incident report has been logged into the system.
-                  </AlertDescription>
-                </Alert>
+                <div className="flex items-center gap-2 rounded-xl border border-emerald-200/70 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
+                  <ShieldCheck className="h-4 w-4 shrink-0" />
+                  Your incident report has been logged into the system.
+                </div>
               )}
 
-              <div className="flex items-center justify-center space-x-2 mb-6">
-                {[1, 2, 3].map((step) => (
-                  <div
-                    key={step}
-                    className={`h-2 rounded-full transition-all duration-300 ${step <= currentStep
-                      ? "bg-blue-600 w-8"
-                      : "bg-slate-200 dark:bg-slate-700 w-2"
-                      }`}
-                  />
-                ))}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <Badge variant="secondary" className="font-semibold">
+                    Step {currentStep} of 3
+                  </Badge>
+                  <span className="font-medium text-muted-foreground">{STEP_LABELS[currentStep - 1]}</span>
+                </div>
+                <Progress value={(currentStep / 3) * 100} />
               </div>
 
               {currentStep === 1 && (
@@ -355,98 +284,19 @@ export default function LandingReportPage() {
                       Reporter Information
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="reporterName"
-                          className={labelClassName}
-                        >
-                          Reporter Name{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="reporterName"
-                          placeholder="Jane Doe"
-                          value={reporterName}
-                          onChange={(e) => setReporterName(e.target.value)}
-                          disabled={isLoading}
-                          required
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="reporterDesignation"
-                          className={labelClassName}
-                        >
-                          Designation / Job Title{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="reporterDesignation"
-                          placeholder="Registered Nurse, Staff Physician..."
-                          value={reporterDesignation}
-                          onChange={(e) =>
-                            setReporterDesignation(e.target.value)
-                          }
-                          disabled={isLoading}
-                          required
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="reporterInfo"
-                          className={labelClassName}
-                        >
-                          Contact Details / Info{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="reporterInfo"
-                          placeholder="Phone extension or email address"
-                          value={reporterInfo}
-                          onChange={(e) => setReporterInfo(e.target.value)}
-                          disabled={isLoading}
-                          required
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="reporterDate"
-                          className={labelClassName}
-                        >
-                          Date of Report{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="reporterDate"
-                          type="date"
-                          value={reporterDate}
-                          onChange={(e) => setReporterDate(e.target.value)}
-                          disabled={isLoading}
-                          required
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="md:col-span-2 flex items-center space-x-3 pt-2">
-                        <input
+                      <TextField id="reporterName" label="Reporter Name" required placeholder="Jane Doe" register={register} error={errors.reporterName} disabled={isLoading} />
+                      <TextField id="reporterDesignation" label="Designation / Job Title" required placeholder="Registered Nurse, Staff Physician..." register={register} error={errors.reporterDesignation} disabled={isLoading} />
+                      <TextField id="reporterInfo" label="Contact Details / Info" required placeholder="Phone extension or email address" register={register} error={errors.reporterInfo} disabled={isLoading} />
+                      <TextField id="reporterDate" label="Date of Report" required type="date" register={register} error={errors.reporterDate} disabled={isLoading} />
+                      <div className="md:col-span-2">
+                        <CheckboxField
                           id="signature"
-                          type="checkbox"
-                          checked={signature}
-                          onChange={(e) => setSignature(e.target.checked)}
+                          control={control}
+                          error={errors.signature}
                           disabled={isLoading}
+                          label="I confirm that the factual particulars recorded here are true and accurate"
                           required
-                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-900"
                         />
-                        <Label
-                          htmlFor="signature"
-                          className="text-sm font-medium text-slate-700 dark:text-slate-300"
-                        >
-                          I confirm that the factual particulars recorded here
-                          are true and accurate{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
                       </div>
                     </div>
                   </div>
@@ -456,204 +306,50 @@ export default function LandingReportPage() {
                       Principal Person Involved (Subject)
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="principalName"
-                          className={labelClassName}
-                        >
-                          Full Name <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="principalName"
-                          placeholder="John Smith"
-                          value={principalName}
-                          onChange={(e) => setPrincipalName(e.target.value)}
-                          disabled={isLoading}
-                          required
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="principalGender"
-                          className={labelClassName}
-                        >
-                          Gender <span className="text-destructive">*</span>
-                        </Label>
-                        <Select
-                          value={principalGender}
-                          onValueChange={(value) => setPrincipalGender(value)}
-                          disabled={isLoading}
-                          required
-                        >
-                          <SelectTrigger
-                            id="principalGender"
-                            className={inputClassName}
-                          >
-                            <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Male">Male</SelectItem>
-                            <SelectItem value="Female">Female</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="principalDob"
-                          className={labelClassName}
-                        >
-                          Date of Birth{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="principalDob"
-                          type="date"
-                          value={principalDob}
-                          onChange={(e) => setPrincipalDob(e.target.value)}
-                          disabled={isLoading}
-                          required
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="principalType"
-                          className={labelClassName}
-                        >
-                          Person Classification{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Select
-                          value={principalType}
-                          onValueChange={(value) => setPrincipalType(value)}
-                          disabled={isLoading}
-                          required
-                        >
-                          <SelectTrigger
-                            id="principalType"
-                            className={inputClassName}
-                          >
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="patient">Patient</SelectItem>
-                            <SelectItem value="staff">Staff</SelectItem>
-                            <SelectItem value="visiting consultant">
-                              Visiting Consultant
-                            </SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <TextField id="principalName" label="Full Name" required placeholder="John Smith" register={register} error={errors.principalName} disabled={isLoading} />
+                      <SelectField
+                        id="principalGender"
+                        label="Gender"
+                        required
+                        control={control}
+                        error={errors.principalGender}
+                        disabled={isLoading}
+                        placeholder="Select gender"
+                        options={[
+                          { value: "Male", label: "Male" },
+                          { value: "Female", label: "Female" },
+                        ]}
+                      />
+                      <TextField id="principalDob" label="Date of Birth" required type="date" register={register} error={errors.principalDob} disabled={isLoading} />
+                      <SelectField
+                        id="principalType"
+                        label="Person Classification"
+                        required
+                        control={control}
+                        error={errors.principalType}
+                        disabled={isLoading}
+                        placeholder="Select type"
+                        options={[
+                          { value: "patient", label: "Patient" },
+                          { value: "staff", label: "Staff" },
+                          { value: "visiting consultant", label: "Visiting Consultant" },
+                          { value: "other", label: "Other" },
+                        ]}
+                      />
 
                       {principalType === "patient" && (
                         <>
-                          <div className="space-y-2">
-                            <Label
-                              htmlFor="patientId"
-                              className={labelClassName}
-                            >
-                              Patient ID / Case Reference
-                            </Label>
-                            <Input
-                              id="patientId"
-                              placeholder="PT-12345"
-                              value={patientId}
-                              onChange={(e) => setPatientId(e.target.value)}
-                              disabled={isLoading}
-                              className={inputClassName}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label
-                              htmlFor="patientWardDept"
-                              className={labelClassName}
-                            >
-                              Patient Ward / Department
-                            </Label>
-                            <Input
-                              id="patientWardDept"
-                              placeholder="ICU, Ward 4A..."
-                              value={patientWardDept}
-                              onChange={(e) =>
-                                setPatientWardDept(e.target.value)
-                              }
-                              disabled={isLoading}
-                              className={inputClassName}
-                            />
-                          </div>
+                          <TextField id="patientId" label="Patient ID / Case Reference" placeholder="PT-12345" register={register} disabled={isLoading} />
+                          <TextField id="patientWardDept" label="Patient Ward / Department" placeholder="ICU, Ward 4A..." register={register} disabled={isLoading} />
                         </>
                       )}
 
                       {principalType === "staff" && (
                         <>
-                          <div className="space-y-2">
-                            <Label
-                              htmlFor="staffJobTitle"
-                              className={labelClassName}
-                            >
-                              Staff Job Title
-                            </Label>
-                            <Input
-                              id="staffJobTitle"
-                              placeholder="Clinical Lead, Lab Tech..."
-                              value={staffJobTitle}
-                              onChange={(e) => setStaffJobTitle(e.target.value)}
-                              disabled={isLoading}
-                              className={inputClassName}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label
-                              htmlFor="staffPhone"
-                              className={labelClassName}
-                            >
-                              Staff Contact Phone
-                            </Label>
-                            <Input
-                              id="staffPhone"
-                              placeholder="+1555-0199"
-                              value={staffPhone}
-                              onChange={(e) => setStaffPhone(e.target.value)}
-                              disabled={isLoading}
-                              className={inputClassName}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label
-                              htmlFor="staffPlaceOfWork"
-                              className={labelClassName}
-                            >
-                              Place of Work / Unit
-                            </Label>
-                            <Input
-                              id="staffPlaceOfWork"
-                              placeholder="Main Laboratory"
-                              value={staffPlaceOfWork}
-                              onChange={(e) =>
-                                setStaffPlaceOfWork(e.target.value)
-                              }
-                              disabled={isLoading}
-                              className={inputClassName}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label
-                              htmlFor="staffSite"
-                              className={labelClassName}
-                            >
-                              Staff Site location
-                            </Label>
-                            <Input
-                              id="staffSite"
-                              placeholder="North Wing Facility"
-                              value={staffSite}
-                              onChange={(e) => setStaffSite(e.target.value)}
-                              disabled={isLoading}
-                              className={inputClassName}
-                            />
-                          </div>
+                          <TextField id="staffJobTitle" label="Staff Job Title" placeholder="Clinical Lead, Lab Tech..." register={register} disabled={isLoading} />
+                          <TextField id="staffPhone" label="Staff Contact Phone" placeholder="+1555-0199" register={register} disabled={isLoading} />
+                          <TextField id="staffPlaceOfWork" label="Place of Work / Unit" placeholder="Main Laboratory" register={register} disabled={isLoading} />
+                          <TextField id="staffSite" label="Staff Site location" placeholder="North Wing Facility" register={register} disabled={isLoading} />
                         </>
                       )}
                     </div>
@@ -668,154 +364,46 @@ export default function LandingReportPage() {
                       Incident Location & Timings
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="dateOfIncident"
-                          className={labelClassName}
-                        >
-                          Date of Incident{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="dateOfIncident"
-                          type="date"
-                          value={dateOfIncident}
-                          onChange={(e) => setDateOfIncident(e.target.value)}
-                          disabled={isLoading}
-                          required
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="timeOfIncident"
-                          className={labelClassName}
-                        >
-                          Time of Incident{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="timeOfIncident"
-                          type="time"
-                          value={timeOfIncident}
-                          onChange={(e) => setTimeOfIncident(e.target.value)}
-                          disabled={isLoading}
-                          required
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="locationOfIncident"
-                          className={labelClassName}
-                        >
-                          Specific Location{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="locationOfIncident"
-                          placeholder="Main Lobby Room B, Elevators..."
-                          value={locationOfIncident}
-                          onChange={(e) =>
-                            setLocationOfIncident(e.target.value)
-                          }
-                          disabled={isLoading}
-                          required
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="incidentWardDept"
-                          className={labelClassName}
-                        >
-                          Incident Ward / Dept{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="incidentWardDept"
-                          placeholder="Emergency Department, Pediatrics..."
-                          value={incidentWardDept}
-                          onChange={(e) => setIncidentWardDept(e.target.value)}
-                          disabled={isLoading}
-                          required
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="severityLevel"
-                          className={labelClassName}
-                        >
-                          Assessed Severity Level{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Select
-                          value={severityLevel}
-                          onValueChange={(value) => setSeverityLevel(value)}
-                          disabled={isLoading}
-                          required
-                        >
-                          <SelectTrigger
-                            id="severityLevel"
-                            className={inputClassName}
-                          >
-                            <SelectValue placeholder="Select severity" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="near miss">Near Miss</SelectItem>
-                            <SelectItem value="minor">Minor</SelectItem>
-                            <SelectItem value="major">Major</SelectItem>
-                            <SelectItem value="critical">Critical</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="incidentStatus"
-                          className={labelClassName}
-                        >
-                          Initial Handling Status{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Select
-                          value={incidentStatus}
-                          onValueChange={(value) => setIncidentStatus(value)}
-                          disabled={isLoading}
-                          required
-                        >
-                          <SelectTrigger
-                            id="incidentStatus"
-                            className={inputClassName}
-                          >
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="unresolved">
-                              Unresolved
-                            </SelectItem>
-                            <SelectItem value="inprogress">
-                              In Progress
-                            </SelectItem>
-                            <SelectItem value="resolved">Resolved</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex items-center space-x-3 pt-2">
-                        <input
+                      <TextField id="dateOfIncident" label="Date of Incident" required type="date" register={register} error={errors.dateOfIncident} disabled={isLoading} />
+                      <TextField id="timeOfIncident" label="Time of Incident" required type="time" register={register} error={errors.timeOfIncident} disabled={isLoading} />
+                      <TextField id="locationOfIncident" label="Specific Location" required placeholder="Main Lobby Room B, Elevators..." register={register} error={errors.locationOfIncident} disabled={isLoading} />
+                      <TextField id="incidentWardDept" label="Incident Ward / Dept" required placeholder="Emergency Department, Pediatrics..." register={register} error={errors.incidentWardDept} disabled={isLoading} />
+                      <SelectField
+                        id="severityLevel"
+                        label="Assessed Severity Level"
+                        required
+                        control={control}
+                        error={errors.severityLevel}
+                        disabled={isLoading}
+                        placeholder="Select severity"
+                        options={[
+                          { value: "near miss", label: "Near Miss" },
+                          { value: "minor", label: "Minor" },
+                          { value: "major", label: "Major" },
+                          { value: "critical", label: "Critical" },
+                        ]}
+                      />
+                      <SelectField
+                        id="incidentStatus"
+                        label="Initial Handling Status"
+                        required
+                        control={control}
+                        error={errors.incidentStatus}
+                        disabled={isLoading}
+                        placeholder="Select status"
+                        options={[
+                          { value: "unresolved", label: "Unresolved" },
+                          { value: "inprogress", label: "In Progress" },
+                          { value: "resolved", label: "Resolved" },
+                        ]}
+                      />
+                      <div className="flex items-center">
+                        <CheckboxField
                           id="isNearMiss"
-                          type="checkbox"
-                          checked={isNearMiss}
-                          onChange={(e) => setIsNearMiss(e.target.checked)}
+                          control={control}
                           disabled={isLoading}
-                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-900"
+                          label="Classify definitively as a Near-Miss scenario"
                         />
-                        <Label
-                          htmlFor="isNearMiss"
-                          className="text-sm font-medium text-slate-700 dark:text-slate-300"
-                        >
-                          Classify definitively as a Near-Miss scenario
-                        </Label>
                       </div>
                     </div>
                   </div>
@@ -825,80 +413,11 @@ export default function LandingReportPage() {
                       Witnesses Information
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="witnesses" className={labelClassName}>
-                          Witness Name(s)
-                        </Label>
-                        <Input
-                          id="witnesses"
-                          placeholder="Separate names with commas if multiple"
-                          value={witnesses}
-                          onChange={(e) => setWitnesses(e.target.value)}
-                          disabled={isLoading}
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="witnessType" className={labelClassName}>
-                          Witness Category / Type
-                        </Label>
-                        <Input
-                          id="witnessType"
-                          placeholder="Visitor, Colleague, Patient relative..."
-                          value={witnessType}
-                          onChange={(e) => setWitnessType(e.target.value)}
-                          disabled={isLoading}
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="witnessWardDept"
-                          className={labelClassName}
-                        >
-                          Witness Ward / Department
-                        </Label>
-                        <Input
-                          id="witnessWardDept"
-                          placeholder="Radiology, Outpatient clinic..."
-                          value={witnessWardDept}
-                          onChange={(e) => setWitnessWardDept(e.target.value)}
-                          disabled={isLoading}
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="witnessJobTitle"
-                          className={labelClassName}
-                        >
-                          Witness Designation / Job
-                        </Label>
-                        <Input
-                          id="witnessJobTitle"
-                          placeholder="Security Guard, Resident Physician..."
-                          value={witnessJobTitle}
-                          onChange={(e) => setWitnessJobTitle(e.target.value)}
-                          disabled={isLoading}
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="witnessPhone"
-                          className={labelClassName}
-                        >
-                          Witness Phone / Contact
-                        </Label>
-                        <Input
-                          id="witnessPhone"
-                          placeholder="Phone extension or cell details"
-                          value={witnessPhone}
-                          onChange={(e) => setWitnessPhone(e.target.value)}
-                          disabled={isLoading}
-                          className={inputClassName}
-                        />
-                      </div>
+                      <TextField className="md:col-span-2" id="witnesses" label="Witness Name(s)" placeholder="Separate names with commas if multiple" register={register} disabled={isLoading} />
+                      <TextField id="witnessType" label="Witness Category / Type" placeholder="Visitor, Colleague, Patient relative..." register={register} disabled={isLoading} />
+                      <TextField id="witnessWardDept" label="Witness Ward / Department" placeholder="Radiology, Outpatient clinic..." register={register} disabled={isLoading} />
+                      <TextField id="witnessJobTitle" label="Witness Designation / Job" placeholder="Security Guard, Resident Physician..." register={register} disabled={isLoading} />
+                      <TextField id="witnessPhone" label="Witness Phone / Contact" placeholder="Phone extension or cell details" register={register} disabled={isLoading} />
                     </div>
                   </div>
                 </div>
@@ -912,98 +431,18 @@ export default function LandingReportPage() {
                     </h3>
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="causeGroup"
-                            className={labelClassName}
-                          >
-                            Cause Classification Group{" "}
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="causeGroup"
-                            placeholder="Clinical Error, Operational Hazard, Technical Fault..."
-                            value={causeGroup}
-                            onChange={(e) => setCauseGroup(e.target.value)}
-                            disabled={isLoading}
-                            required
-                            className={inputClassName}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="prescribingDoctor"
-                            className={labelClassName}
-                          >
-                            Prescribing Doctor{" "}
-                            <span className="text-xs text-muted-foreground">
-                              (If applicable)
-                            </span>
-                          </Label>
-                          <Input
-                            id="prescribingDoctor"
-                            placeholder="Dr. Alexander Pierce"
-                            value={prescribingDoctor}
-                            onChange={(e) =>
-                              setPrescribingDoctor(e.target.value)
-                            }
-                            disabled={isLoading}
-                            className={inputClassName}
-                          />
-                        </div>
+                        <TextField id="causeGroup" label="Cause Classification Group" required placeholder="Clinical Error, Operational Hazard, Technical Fault..." register={register} error={errors.causeGroup} disabled={isLoading} />
+                        <TextField id="prescribingDoctor" label="Prescribing Doctor" placeholder="Dr. Alexander Pierce" register={register} disabled={isLoading} />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="causes" className={labelClassName}>
-                          Factual Description of Causes / Incident Details{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Textarea
-                          id="causes"
-                          rows={4}
-                          placeholder="Provide a precise, factual and chronological timeline outlining exactly what happened..."
-                          value={causes}
-                          onChange={(e) => setCauses(e.target.value)}
-                          disabled={isLoading}
-                          required
-                          className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 focus-visible:ring-blue-600 focus-visible:border-blue-600 transition-all"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="treatmentReceived"
-                          className={labelClassName}
-                        >
-                          Immediate Medical Treatment Received / Care Actions
-                          Provided <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="treatmentReceived"
-                          placeholder="First aid given, transferred to trauma unit, nil required..."
-                          value={treatmentReceived}
-                          onChange={(e) => setTreatmentReceived(e.target.value)}
-                          disabled={isLoading}
-                          required
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="peopleInvolved"
-                          className={labelClassName}
-                        >
-                          Other People Involved / Affected{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="peopleInvolved"
-                          placeholder="Names or identifying details of other persons involved"
-                          value={peopleInvolved}
-                          onChange={(e) => setPeopleInvolved(e.target.value)}
-                          disabled={isLoading}
-                          required
-                          className={inputClassName}
-                        />
-                      </div>
+                      <Field data-invalid={!!errors.causes}>
+                        <FieldLabel htmlFor="causes" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          Factual Description of Causes / Incident Details <span className="text-destructive">*</span>
+                        </FieldLabel>
+                        <Textarea id="causes" rows={4} placeholder="Provide a precise, factual and chronological timeline outlining exactly what happened..." disabled={isLoading} aria-invalid={!!errors.causes} className="rounded-xl" {...register("causes")} />
+                        <FieldError errors={[errors.causes]} />
+                      </Field>
+                      <TextField id="treatmentReceived" label="Immediate Medical Treatment Received / Care Actions Provided" required placeholder="First aid given, transferred to trauma unit, nil required..." register={register} error={errors.treatmentReceived} disabled={isLoading} />
+                      <TextField id="peopleInvolved" label="Other People Involved / Affected" required placeholder="Names or identifying details of other persons involved" register={register} error={errors.peopleInvolved} disabled={isLoading} />
                     </div>
                   </div>
 
@@ -1012,131 +451,18 @@ export default function LandingReportPage() {
                       Asset & Equipment Management
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="equipmentInvolved"
-                          className={labelClassName}
-                        >
-                          Equipment Involved Name / Context{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="equipmentInvolved"
-                          placeholder="Infusion Pump, Defibrillator, None..."
-                          value={equipmentInvolved}
-                          onChange={(e) => setEquipmentInvolved(e.target.value)}
-                          disabled={isLoading}
-                          required
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="equipmentModel"
-                          className={labelClassName}
-                        >
-                          Equipment Model
-                        </Label>
-                        <Input
-                          id="equipmentModel"
-                          placeholder="Model series / manufacturer info"
-                          value={equipmentModel}
-                          onChange={(e) => setEquipmentModel(e.target.value)}
-                          disabled={isLoading}
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="equipmentNumber"
-                          className={labelClassName}
-                        >
-                          Equipment Serial / Asset ID Number
-                        </Label>
-                        <Input
-                          id="equipmentNumber"
-                          placeholder="ASN-992182"
-                          value={equipmentNumber}
-                          onChange={(e) => setEquipmentNumber(e.target.value)}
-                          disabled={isLoading}
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="isMedicalDevice"
-                          className={labelClassName}
-                        >
-                          Is this a certified medical device?
-                        </Label>
-                        <Input
-                          id="isMedicalDevice"
-                          placeholder="Yes / No / Unsure"
-                          value={isMedicalDevice}
-                          onChange={(e) => setIsMedicalDevice(e.target.value)}
-                          disabled={isLoading}
-                          className={inputClassName}
-                        />
-                      </div>
+                      <TextField id="equipmentInvolved" label="Equipment Involved Name / Context" required placeholder="Infusion Pump, Defibrillator, None..." register={register} error={errors.equipmentInvolved} disabled={isLoading} />
+                      <TextField id="equipmentModel" label="Equipment Model" placeholder="Model series / manufacturer info" register={register} disabled={isLoading} />
+                      <TextField id="equipmentNumber" label="Equipment Serial / Asset ID Number" placeholder="ASN-992182" register={register} disabled={isLoading} />
+                      <TextField id="isMedicalDevice" label="Is this a certified medical device?" placeholder="Yes / No / Unsure" register={register} disabled={isLoading} />
                       <div className="md:col-span-2 space-y-3 pt-2 border-t border-dashed mt-2">
-                        <Label className={labelClassName}>
+                        <FieldDescription className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                           Current Equipment Status Actions
-                        </Label>
+                        </FieldDescription>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
-                          <div className="flex items-center space-x-3">
-                            <input
-                              id="equipmentSentForRepair"
-                              type="checkbox"
-                              checked={equipmentSentForRepair}
-                              onChange={(e) =>
-                                setEquipmentSentForRepair(e.target.checked)
-                              }
-                              disabled={isLoading}
-                              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-900"
-                            />
-                            <Label
-                              htmlFor="equipmentSentForRepair"
-                              className="text-sm font-medium text-slate-700 dark:text-slate-300"
-                            >
-                              Sent for Repair
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <input
-                              id="equipmentWithdrawn"
-                              type="checkbox"
-                              checked={equipmentWithdrawn}
-                              onChange={(e) =>
-                                setEquipmentWithdrawn(e.target.checked)
-                              }
-                              disabled={isLoading}
-                              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-900"
-                            />
-                            <Label
-                              htmlFor="equipmentWithdrawn"
-                              className="text-sm font-medium text-slate-700 dark:text-slate-300"
-                            >
-                              Withdrawn from Use
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <input
-                              id="equipmentRetained"
-                              type="checkbox"
-                              checked={equipmentRetained}
-                              onChange={(e) =>
-                                setEquipmentRetained(e.target.checked)
-                              }
-                              disabled={isLoading}
-                              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-900"
-                            />
-                            <Label
-                              htmlFor="equipmentRetained"
-                              className="text-sm font-medium text-slate-700 dark:text-slate-300"
-                            >
-                              Retained for Audit
-                            </Label>
-                          </div>
+                          <CheckboxField id="equipmentSentForRepair" control={control} disabled={isLoading} label="Sent for Repair" />
+                          <CheckboxField id="equipmentWithdrawn" control={control} disabled={isLoading} label="Withdrawn from Use" />
+                          <CheckboxField id="equipmentRetained" control={control} disabled={isLoading} label="Retained for Audit" />
                         </div>
                       </div>
                     </div>
@@ -1145,15 +471,10 @@ export default function LandingReportPage() {
               )}
             </CardContent>
 
-            <CardFooter className="flex justify-between gap-3 border-t bg-muted/10 py-4 px-6">
+            <CardFooter className="flex justify-between gap-3">
               <div className="flex gap-2">
                 {currentStep > 1 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={prevStep}
-                    disabled={isLoading}
-                  >
+                  <Button type="button" variant="outline" onClick={prevStep} disabled={isLoading}>
                     Previous
                   </Button>
                 )}
@@ -1167,7 +488,7 @@ export default function LandingReportPage() {
                   <Button type="submit" disabled={isLoading}>
                     {isLoading ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin" />
                         Submitting Report...
                       </>
                     ) : (
