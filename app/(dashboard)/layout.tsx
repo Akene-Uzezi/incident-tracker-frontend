@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   Menu,
   LockKeyhole,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -137,6 +138,7 @@ function UserMenu({
   compact?: boolean;
   onLogout: () => void;
 }) {
+  const router = useRouter();
   const initials = user?.name
     ? user.name
         .split(" ")
@@ -152,7 +154,7 @@ function UserMenu({
         <button
           type="button"
           className={cn(
-            "flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors hover:bg-muted",
+            "flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors hover:bg-muted",
             compact && "md:justify-center md:px-0"
           )}
         >
@@ -172,6 +174,11 @@ function UserMenu({
             <span className="text-xs text-muted-foreground">{user?.email}</span>
           </div>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => router.push("/dashboard/change-password")} className="gap-2">
+          <KeyRound className="h-4 w-4" />
+          Change Password
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onLogout} variant="destructive" className="gap-2">
           <LogOut className="h-4 w-4" />
@@ -228,7 +235,7 @@ export default function DashboardLayout({
             type="button"
             onClick={toggleSidebar}
             className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground group",
+              "group flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground",
               !sidebarOpen && "justify-center px-0"
             )}
           >

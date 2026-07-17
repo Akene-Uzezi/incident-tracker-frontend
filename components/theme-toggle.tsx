@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
 import { Moon, Sun, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,8 +11,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+const emptySubscribe = () => () => {};
+
 export function ThemeToggle({ className }: { className?: string }) {
   const { setTheme, theme } = useTheme();
+  const mounted = React.useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   return (
     <DropdownMenu>
@@ -23,7 +30,9 @@ export function ThemeToggle({ className }: { className?: string }) {
           className={className}
           aria-label="Toggle theme"
         >
-          {theme === "dark" ? (
+          {!mounted ? (
+            <Monitor className="h-4 w-4" />
+          ) : theme === "dark" ? (
             <Moon className="h-4 w-4" />
           ) : theme === "light" ? (
             <Sun className="h-4 w-4" />

@@ -62,7 +62,6 @@ export const STEP_FIELDS: Record<1 | 2 | 3, (keyof IncidentReportValues)[]> = {
     "reporterName",
     "reporterDesignation",
     "reporterInfo",
-    "reporterDate",
     "signature",
     "principalName",
     "principalGender",

@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -13,11 +12,31 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calendar, ChevronDown, Filter, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as DateRangeCalendar } from "@/components/ui/calendar";
+import { CalendarIcon, ChevronDown, Filter, X } from "lucide-react";
 import { IncidentReport, IncidentStatus, VALID_STATUSES, formatStatusText } from "@/lib/types";
 import { useIncidentsQuery } from "@/lib/api/hooks/use-incidents";
 import { IncidentTable } from "./IncidentTable";
 import { IncidentDetails } from "./IncidentDetails";
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function toIsoDate(date: Date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function parseIsoDate(value: string) {
+  if (!value) return undefined;
+  const d = new Date(`${value}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+function formatShortDate(date: Date) {
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -71,28 +90,36 @@ export default function Dashboard() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 md:self-start">
-              <div className="flex items-center gap-1.5 rounded-lg border bg-background px-2 py-1 shadow-sm">
-                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => {
-                    setDateFrom(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="h-6 w-28 border-none bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
-                />
-                <span className="px-0.5 text-xs font-medium text-muted-foreground">to</span>
-                <Input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => {
-                    setDateTo(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="h-6 w-28 border-none bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
-                />
-              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="h-8 gap-2 px-3 text-xs font-medium shadow-sm">
+                    <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                    {dateFrom || dateTo ? (
+                      <span>
+                        {dateFrom ? formatShortDate(parseIsoDate(dateFrom)!) : "Any"}
+                        {" – "}
+                        {dateTo ? formatShortDate(parseIsoDate(dateTo)!) : "Any"}
+                      </span>
+                    ) : (
+                      <span>All Dates</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <DateRangeCalendar
+                    mode="range"
+                    captionLayout="dropdown"
+                    numberOfMonths={2}
+                    selected={{ from: parseIsoDate(dateFrom), to: parseIsoDate(dateTo) }}
+                    defaultMonth={parseIsoDate(dateFrom) ?? new Date()}
+                    onSelect={(range) => {
+                      setDateFrom(range?.from ? toIsoDate(range.from) : "");
+                      setDateTo(range?.to ? toIsoDate(range.to) : "");
+                      setCurrentPage(1);
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
 
               {(dateFrom || dateTo) && (
                 <Button

@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
-import { RefreshCw, Plus, Edit2 } from "lucide-react";
+import { RefreshCw, Plus, Edit2, CalendarIcon } from "lucide-react";
 import { IncidentManagement } from "@/lib/types";
 import { managementSchema, type ManagementValues } from "@/lib/schemas/management";
 import {
@@ -16,6 +18,76 @@ import {
   useUpdateManagementMutation,
 } from "@/lib/api/hooks/use-management";
 import { notify } from "@/lib/toast";
+import { cn } from "@/lib/utils";
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function toIsoDate(date: Date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function parseIsoDate(value?: string) {
+  if (!value) return undefined;
+  const d = new Date(`${value}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+function CompactDateField({
+  label,
+  value,
+  onChange,
+  required,
+  error,
+  maxDate,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  error?: { message?: string };
+  maxDate?: Date;
+}) {
+  const selected = parseIsoDate(value);
+
+  return (
+    <Field data-invalid={!!error}>
+      <FieldLabel className="text-xs font-medium text-foreground">
+        {label} {required && "*"}
+      </FieldLabel>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            className={cn(
+              "h-9 w-full justify-start gap-1.5 bg-background px-2.5 text-xs font-normal",
+              !selected && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            {selected
+              ? selected.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+              : "Select date"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            captionLayout="dropdown"
+            selected={selected}
+            defaultMonth={selected ?? maxDate}
+            endMonth={maxDate}
+            disabled={maxDate ? { after: maxDate } : undefined}
+            onSelect={(date) => onChange(date ? toIsoDate(date) : "")}
+          />
+        </PopoverContent>
+      </Popover>
+      <FieldError errors={[error]} />
+    </Field>
+  );
+}
 
 const DEFAULT_VALUES: ManagementValues = {
   impactOnService: "",
@@ -77,6 +149,7 @@ export function AdminManagementForm({
 
   const riskSeverity = watch("riskSeverity");
   const riskLikelihood = watch("riskLikelihood");
+  const today = useMemo(() => new Date(), []);
 
   useEffect(() => {
     setValue("riskRating", (Number(riskSeverity) || 0) * (Number(riskLikelihood) || 0));
@@ -390,10 +463,18 @@ export function AdminManagementForm({
               <FieldLabel className="text-xs font-medium text-foreground">OHS Impacted Staff Name</FieldLabel>
               <Input className="h-9 bg-background text-xs" {...register("ohsStaffName")} />
             </Field>
-            <Field>
-              <FieldLabel className="text-xs font-medium text-foreground">Staff Date of Birth</FieldLabel>
-              <Input type="date" className="h-9 bg-background text-xs" {...register("ohsStaffDob")} />
-            </Field>
+            <Controller
+              control={control}
+              name="ohsStaffDob"
+              render={({ field }) => (
+                <CompactDateField
+                  label="Staff Date of Birth"
+                  value={field.value || ""}
+                  onChange={field.onChange}
+                  maxDate={today}
+                />
+              )}
+            />
             <Field>
               <FieldLabel className="text-xs font-medium text-foreground">Staff Home Address</FieldLabel>
               <Input className="h-9 bg-background text-xs" {...register("ohsStaffAddress")} />
@@ -416,11 +497,20 @@ export function AdminManagementForm({
               <Input className="h-9 bg-background text-xs" {...register("managerDesignation")} />
               <FieldError errors={[errors.managerDesignation]} />
             </Field>
-            <Field data-invalid={!!errors.managerDate}>
-              <FieldLabel className="text-xs font-medium text-foreground">Authorization Date *</FieldLabel>
-              <Input type="date" className="h-9 bg-background text-xs" {...register("managerDate")} />
-              <FieldError errors={[errors.managerDate]} />
-            </Field>
+            <Controller
+              control={control}
+              name="managerDate"
+              render={({ field }) => (
+                <CompactDateField
+                  label="Authorization Date"
+                  required
+                  value={field.value || ""}
+                  onChange={field.onChange}
+                  error={errors.managerDate}
+                  maxDate={today}
+                />
+              )}
+            />
             <Controller
               control={control}
               name="managerSignature"
