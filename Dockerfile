@@ -16,7 +16,11 @@ COPY . .
 
 ARG NEXT_PUBLIC_apiurl
 
+ARG NEXT_PUBLIC_deathreport
+
 ENV NEXT_PUBLIC_apiurl=$NEXT_PUBLIC_apiurl
+
+ENV NEXT_PUBLIC_deathreport=$NEXT_PUBLIC_deathreport
 
 RUN npm run build
 
