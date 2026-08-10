@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   ShieldAlert,
   LayoutDashboard,
+  ClipboardList,
   FilePlus2,
   LogOut,
   UserPlus,
@@ -28,18 +29,33 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationBell } from "@/components/notification-bell";
 import { useAuthStore, useAuthUser, useIsSuperAdmin } from "@/lib/store/auth-store";
 import { useUIStore } from "@/lib/store/ui-store";
+import { useLoadingStore } from "@/lib/store/loading-store";
+import { useNotificationPolling } from "@/lib/api/hooks/use-notification-polling";
 import { NavigationItem, SuperAdminNavigationItem } from "./types/navTypes";
 import type { AuthUser } from "@/lib/types";
 
 function getNavItems(pathname: string): NavigationItem[] {
   return [
     {
-      label: "View Incidents",
+      label: "Overview",
       href: "/dashboard",
       icon: LayoutDashboard,
       variant: pathname === "/dashboard" ? "default" : "ghost",
+    },
+    {
+      label: "View Incidents",
+      href: "/dashboard/incidents",
+      icon: ClipboardList,
+      variant: pathname === "/dashboard/incidents" ? "default" : "ghost",
+    },
+    {
+      label: "View DeathReports",
+      href: process.env.NEXT_PUBLIC_deathreport,
+      icon: ClipboardList,
+      variant: "ghost",
     },
     {
       label: "Report an Incident",
@@ -141,11 +157,11 @@ function UserMenu({
   const router = useRouter();
   const initials = user?.name
     ? user.name
-        .split(" ")
-        .map((p) => p[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
+      .split(" ")
+      .map((p) => p[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase()
     : "?";
 
   return (
@@ -201,9 +217,13 @@ export default function DashboardLayout({
   const clearSession = useAuthStore((s) => s.clear);
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const showLoading = useLoadingStore((s) => s.show);
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
 
+  useNotificationPolling();
+
   const handleLogout = () => {
+    showLoading("Signing you out...");
     clearSession();
     router.push("/login");
   };
@@ -229,7 +249,12 @@ export default function DashboardLayout({
         <div className="mt-auto border-t p-3 space-y-2">
           <div className={cn("flex items-center", sidebarOpen ? "justify-between" : "justify-center")}>
             <UserMenu user={user} compact={!sidebarOpen} onLogout={handleLogout} />
-            {sidebarOpen && <ThemeToggle />}
+            {sidebarOpen && (
+              <div className="flex items-center">
+                <NotificationBell />
+                <ThemeToggle />
+              </div>
+            )}
           </div>
           <button
             type="button"
@@ -302,7 +327,10 @@ export default function DashboardLayout({
             <span>IncidentTracker</span>
           </Link>
 
-          <ThemeToggle />
+          <div className="flex items-center">
+            <NotificationBell />
+            <ThemeToggle />
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto bg-muted/5 p-4 sm:p-6 md:p-8">{children}</main>

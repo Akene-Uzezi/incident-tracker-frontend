@@ -116,6 +116,7 @@ export function IncidentTable({
               onClick={() => onPageChange(current_page - 1)}
               disabled={current_page <= 1}
               className="h-8 w-8"
+              aria-label="Previous page"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -128,6 +129,7 @@ export function IncidentTable({
               onClick={() => onPageChange(current_page + 1)}
               disabled={current_page >= total_pages}
               className="h-8 w-8"
+              aria-label="Next page"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

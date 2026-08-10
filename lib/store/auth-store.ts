@@ -11,11 +11,13 @@ interface AuthState {
 
 function setRoleCookie(role: string | null) {
   if (typeof document === "undefined") return;
+  const isHttps = window.location.protocol === "https:";
+  const secure = isHttps ? " Secure;" : "";
   if (!role) {
-    document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+    document.cookie = `user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;${secure}`;
     return;
   }
-  document.cookie = `user_role=${role}; path=/; max-age=86400; sameSite=Strict; Secure`;
+  document.cookie = `user_role=${role}; path=/; max-age=86400; sameSite=Strict;${secure}`;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -34,6 +36,9 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "incident-tracker-auth",
+      onRehydrateStorage: () => (state) => {
+        setRoleCookie(state?.user?.role ?? null);
+      },
     }
   )
 );

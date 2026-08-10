@@ -126,3 +126,8 @@ export interface AuthUser {
   department: string;
   disabled: boolean;
 }
+
+export interface UsersResponse {
+  data: AuthUser[];
+  pagination: PaginationMeta;
+}

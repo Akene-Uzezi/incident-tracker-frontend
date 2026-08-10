@@ -149,14 +149,28 @@ npm run lint
 Create a `.env` file in the project root:
 
 ```env
-NEXT_PUBLIC_apiurl=http://localhost:3001/api/v1
+NEXT_PUBLIC_apiurl=http://localhost:3002/api/v1
+NEXT_PUBLIC_deathreport=http://localhost:3001/dashboard/death-reports
 ```
 
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `NEXT_PUBLIC_apiurl` | Base URL of the backend API | Yes |
+| `NEXT_PUBLIC_deathreport` | Absolute URL of the Death Report app's dashboard, used for cross-navigation from the sidebar | Yes |
 
 > **Note**: The `NEXT_PUBLIC_` prefix exposes the variable to the browser. Do not put sensitive server-only secrets here.
+
+### Linked Applications
+
+This frontend is part of a multi-repository safety reporting system. Both frontends authenticate against the same backend (`incident-tracker-backend`) and share the same JWT, so a session is valid across both apps.
+
+| Repository | Role | Default Dev URL |
+|------------|------|-----------------|
+| `incident-tracker-backend` | Shared REST API (Go / Gin / PostgreSQL) | http://localhost:3002/api/v1 |
+| `incident-tracker-frontend` | Incident reporting UI (this repo) | http://localhost:3000 |
+| `death-report` | Death reporting UI | http://localhost:3001 |
+
+The dashboard sidebar links to the Death Report dashboard via `NEXT_PUBLIC_deathreport`. The Death Report app links back to this app's incident dashboard via its own `NEXT_PUBLIC_incidents` variable.
 
 ## Authentication
 

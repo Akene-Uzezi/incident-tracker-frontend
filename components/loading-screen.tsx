@@ -2,7 +2,16 @@
 
 import { motion } from "framer-motion";
 
-export function LoadingScreen() {
+const DEFAULT_DESCRIPTION =
+  "Structured reporting for workplace incidents, injuries and near-misses — logged accurately, the moment they happen.";
+
+export function LoadingScreen({
+  title = "Incident Tracker",
+  description = DEFAULT_DESCRIPTION,
+}: {
+  title?: string;
+  description?: string;
+}) {
   return (
     <motion.div
       key="loading-screen"
@@ -35,15 +44,16 @@ export function LoadingScreen() {
           transition={{ delay: 0.25, duration: 0.5, ease: "easeOut" }}
           className="font-heading text-2xl font-bold tracking-tight text-foreground"
         >
-          Incident Tracker
+          {title}
         </motion.h1>
         <motion.p
+          key={description}
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.38, duration: 0.5, ease: "easeOut" }}
           className="max-w-xs text-sm text-muted-foreground"
         >
-          Structured reporting for workplace incidents, injuries and near-misses — logged accurately, the moment they happen.
+          {description}
         </motion.p>
       </div>
 

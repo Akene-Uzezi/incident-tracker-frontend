@@ -19,20 +19,7 @@ import {
 } from "@/lib/api/hooks/use-management";
 import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-function toIsoDate(date: Date) {
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
-}
-
-function parseIsoDate(value?: string) {
-  if (!value) return undefined;
-  const d = new Date(`${value}T00:00:00`);
-  return Number.isNaN(d.getTime()) ? undefined : d;
-}
+import { toIsoDate, parseIsoDate } from "@/lib/utils/date";
 
 function CompactDateField({
   label,

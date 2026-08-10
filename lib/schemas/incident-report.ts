@@ -1,58 +1,70 @@
 import { z } from "zod";
 
+const SHORT_MAX = 200;
+const LONG_MAX = 5000;
+const DATE_MAX = 40;
+
+const requiredShortText = z.string().min(1, "Required").max(SHORT_MAX, `Must be ${SHORT_MAX} characters or fewer`);
+const optionalShortText = z.string().max(SHORT_MAX, `Must be ${SHORT_MAX} characters or fewer`).optional();
+const requiredLongText = z.string().min(1, "Required").max(LONG_MAX, `Must be ${LONG_MAX} characters or fewer`);
+const requiredDateText = z.string().min(1, "Required").max(DATE_MAX, "Invalid date");
+
 export const incidentReportSchema = z.object({
   // Step 1 — Reporter
-  reporterName: z.string().min(1, "Required"),
-  reporterDesignation: z.string().min(1, "Required"),
-  reporterInfo: z.string().min(1, "Required"),
-  reporterDate: z.string().min(1, "Required"),
+  reporterName: requiredShortText,
+  reporterDesignation: requiredShortText,
+  reporterInfo: requiredShortText,
+  reporterDate: requiredDateText,
   signature: z.boolean().refine((v) => v === true, {
     message: "Please confirm the particulars are accurate",
   }),
 
   // Step 1 — Principal person
-  principalName: z.string().min(1, "Required"),
-  principalGender: z.string().min(1, "Required"),
-  principalDob: z.string().min(1, "Required"),
-  principalType: z.string().min(1, "Required"),
-  patientId: z.string().optional(),
-  patientWardDept: z.string().optional(),
-  staffJobTitle: z.string().optional(),
-  staffPhone: z.string().optional(),
-  staffPlaceOfWork: z.string().optional(),
-  staffSite: z.string().optional(),
+  principalName: requiredShortText,
+  principalGender: requiredShortText,
+  principalDob: requiredDateText,
+  principalType: requiredShortText,
+  patientId: optionalShortText,
+  patientWardDept: optionalShortText,
+  staffJobTitle: optionalShortText,
+  staffPhone: optionalShortText,
+  staffPlaceOfWork: optionalShortText,
+  staffSite: optionalShortText,
 
   // Step 2 — Incident specifics
-  dateOfIncident: z.string().min(1, "Required"),
-  timeOfIncident: z.string().min(1, "Required"),
-  locationOfIncident: z.string().min(1, "Required"),
-  incidentWardDept: z.string().min(1, "Required"),
-  severityLevel: z.string().min(1, "Required"),
-  incidentStatus: z.string().min(1, "Required"),
+  dateOfIncident: requiredDateText,
+  timeOfIncident: requiredDateText,
+  locationOfIncident: requiredShortText,
+  incidentWardDept: requiredShortText,
+  severityLevel: requiredShortText,
+  incidentStatus: requiredShortText,
   isNearMiss: z.boolean(),
 
   // Step 2 — Witnesses
-  witnesses: z.string().optional(),
-  witnessType: z.string().optional(),
-  witnessWardDept: z.string().optional(),
-  witnessJobTitle: z.string().optional(),
-  witnessPhone: z.string().optional(),
+  witnesses: optionalShortText,
+  witnessType: optionalShortText,
+  witnessWardDept: optionalShortText,
+  witnessJobTitle: optionalShortText,
+  witnessPhone: optionalShortText,
 
   // Step 3 — Description & causes
-  causeGroup: z.string().min(1, "Required"),
-  causes: z.string().min(1, "Required"),
-  prescribingDoctor: z.string().optional(),
-  treatmentReceived: z.string().min(1, "Required"),
-  peopleInvolved: z.string().min(1, "Required"),
+  causeGroup: requiredShortText,
+  causes: requiredLongText,
+  prescribingDoctor: optionalShortText,
+  treatmentReceived: requiredLongText,
+  peopleInvolved: requiredLongText,
 
   // Step 3 — Equipment
-  equipmentInvolved: z.string().min(1, "Required"),
-  equipmentModel: z.string().optional(),
-  equipmentNumber: z.string().optional(),
-  isMedicalDevice: z.string().optional(),
+  equipmentInvolved: requiredShortText,
+  equipmentModel: optionalShortText,
+  equipmentNumber: optionalShortText,
+  isMedicalDevice: optionalShortText,
   equipmentSentForRepair: z.boolean(),
   equipmentWithdrawn: z.boolean(),
   equipmentRetained: z.boolean(),
+
+  // Honeypot — real users never see or fill this field. Any value here means a bot submitted the form.
+  website: z.string().max(0, "").optional(),
 });
 
 export type IncidentReportValues = z.infer<typeof incidentReportSchema>;
@@ -125,4 +137,5 @@ export const INCIDENT_REPORT_DEFAULTS: IncidentReportValues = {
   equipmentSentForRepair: false,
   equipmentWithdrawn: false,
   equipmentRetained: false,
+  website: "",
 };

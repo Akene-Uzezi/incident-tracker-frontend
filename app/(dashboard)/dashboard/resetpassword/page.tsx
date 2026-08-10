@@ -14,6 +14,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Loader2, Mail, KeyRound, AlertTriangle, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { resetPasswordSchema, type ResetPasswordValues } from "@/lib/schemas/users";
@@ -24,6 +34,7 @@ import type { AuthUser } from "@/lib/types";
 
 export default function ResetPasswordPage() {
   const [modifiedUser, setModifiedUser] = useState<AuthUser | null>(null);
+  const [pendingValues, setPendingValues] = useState<ResetPasswordValues | null>(null);
   const router = useRouter();
   const resetMutation = useResetPasswordMutation();
 
@@ -37,7 +48,10 @@ export default function ResetPasswordPage() {
     defaultValues: { email: "", password: "" },
   });
 
-  const onSubmit = (values: ResetPasswordValues) => {
+  const performOverride = () => {
+    if (!pendingValues) return;
+    const values = pendingValues;
+    setPendingValues(null);
     setModifiedUser(null);
     resetMutation.mutate(values, {
       onSuccess: (data) => {
@@ -64,6 +78,10 @@ export default function ResetPasswordPage() {
         notify.apiError("Password override failed", err);
       },
     });
+  };
+
+  const requestConfirm = (values: ResetPasswordValues) => {
+    setPendingValues(values);
   };
 
   return (
@@ -95,7 +113,7 @@ export default function ResetPasswordPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
-            <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+            <form onSubmit={handleSubmit(requestConfirm)} noValidate className="space-y-4">
               <Field data-invalid={!!errors.email}>
                 <FieldLabel htmlFor="email" className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
                   Target User Email
@@ -177,11 +195,7 @@ export default function ResetPasswordPage() {
                   The password for <strong className="text-foreground">{modifiedUser.name}</strong> (
                   {modifiedUser.email}) was updated.
                 </p>
-                <div className="grid grid-cols-2 gap-3 rounded-xl border bg-muted/30 p-4 text-xs sm:grid-cols-4">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-semibold tracking-wider text-muted-foreground/80 uppercase">User ID</span>
-                    <span className="font-medium text-foreground">{modifiedUser.id}</span>
-                  </div>
+                <div className="grid grid-cols-2 gap-3 rounded-xl border bg-muted/30 p-4 text-xs sm:grid-cols-3">
                   <div className="flex flex-col gap-0.5">
                     <span className="font-semibold tracking-wider text-muted-foreground/80 uppercase">Role</span>
                     <span className="font-medium text-foreground capitalize">{modifiedUser.role}</span>
@@ -200,6 +214,24 @@ export default function ResetPasswordPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AlertDialog open={!!pendingValues} onOpenChange={(open) => !open && setPendingValues(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Override the password for {pendingValues?.email}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This immediately replaces their current password with the one you just entered. The
+              account holder is not notified from here — let them know the new password separately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={performOverride}>
+              Apply Override
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

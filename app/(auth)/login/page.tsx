@@ -23,6 +23,7 @@ import {
 import { loginSchema, type LoginValues } from "@/lib/schemas/auth";
 import { useLoginMutation } from "@/lib/api/hooks/use-auth";
 import { useAuthStore } from "@/lib/store/auth-store";
+import { useLoadingStore } from "@/lib/store/loading-store";
 import { notify } from "@/lib/toast";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -76,6 +77,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const setSession = useAuthStore((s) => s.setSession);
+  const showLoading = useLoadingStore((s) => s.show);
   const loginMutation = useLoginMutation();
 
   const {
@@ -92,6 +94,7 @@ export default function LoginPage() {
       onSuccess: (data) => {
         setSession(data.token, data.user);
         notify.success("Welcome back", `Signed in as ${data.user.name}`);
+        showLoading(`Signing you in, ${data.user.name.split(" ")[0]}...`);
         router.replace("/dashboard");
       },
       onError: (err) => {
@@ -216,12 +219,20 @@ export default function LoginPage() {
             </Field>
 
             <Field data-invalid={!!errors.password}>
-              <FieldLabel
-                htmlFor="password"
-                className="text-xs font-bold tracking-wider text-muted-foreground uppercase"
-              >
-                Password
-              </FieldLabel>
+              <div className="flex items-center justify-between">
+                <FieldLabel
+                  htmlFor="password"
+                  className="text-xs font-bold tracking-wider text-muted-foreground uppercase"
+                >
+                  Password
+                </FieldLabel>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-medium text-primary transition-colors hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <Input
                   id="password"

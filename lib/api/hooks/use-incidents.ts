@@ -20,6 +20,22 @@ export function useIncidentsQuery(filters: IncidentFilters) {
   });
 }
 
+// The backend has no dedicated analytics/stats endpoint yet, so the Overview
+// dashboard computes everything client-side from a single large page of the
+// existing GET /incidents endpoint — real data, no mocks. This scales fine up
+// to a few hundred incidents; past that, `pagination.total_items` will exceed
+// what's fetched here and the dashboard should say so rather than pretend the
+// numbers are exhaustive.
+export const ANALYTICS_FETCH_LIMIT = 200;
+
+export function useIncidentsAnalyticsQuery() {
+  return useQuery({
+    queryKey: queryKeys.incidents.analytics(),
+    queryFn: () => apiFetch<IncidentResponse>(`/incidents?page=1&limit=${ANALYTICS_FETCH_LIMIT}`),
+    staleTime: 60_000,
+  });
+}
+
 export function useIncidentStatusMutation(incidentId: number) {
   const queryClient = useQueryClient();
   return useMutation({

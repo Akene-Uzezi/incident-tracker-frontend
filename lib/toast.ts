@@ -14,7 +14,9 @@ export const notify = {
     toast.warning(title, description ? { description } : undefined),
   /** Renders a concise title with the server-provided reason (if any) as the detail line. */
   apiError: (title: string, err: unknown) => {
-    const description = err instanceof ApiError ? err.message : undefined;
-    toast.error(title, description ? { description } : undefined);
+    const description = err instanceof ApiError
+      ? err.message
+      : "Couldn't reach the server. Check your internet connection and try again.";
+    toast.error(title, { description });
   },
 };

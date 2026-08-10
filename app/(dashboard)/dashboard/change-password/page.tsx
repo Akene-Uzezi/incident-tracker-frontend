@@ -32,7 +32,7 @@ function PasswordField({
   error,
   register,
 }: {
-  id: "currentPassword" | "newPassword" | "confirmPassword";
+  id: "newPassword" | "confirmPassword";
   label: string;
   placeholder: string;
   disabled: boolean;
@@ -52,7 +52,7 @@ function PasswordField({
           id={id}
           type={visible ? "text" : "password"}
           placeholder={placeholder}
-          autoComplete={id === "currentPassword" ? "current-password" : "new-password"}
+          autoComplete="new-password"
           disabled={disabled}
           aria-invalid={!!error}
           className="h-11 rounded-xl pr-10 pl-9"
@@ -85,12 +85,18 @@ export default function ChangePasswordPage() {
     formState: { errors },
   } = useForm<ChangePasswordValues>({
     resolver: zodResolver(changePasswordSchema),
-    defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
+    defaultValues: { newPassword: "", confirmPassword: "" },
   });
 
   const onSubmit = (values: ChangePasswordValues) => {
+    if (!user?.email) {
+      notify.error("Session expired", "Please log in again.");
+      router.replace("/login");
+      return;
+    }
+
     changePasswordMutation.mutate(
-      { currentPassword: values.currentPassword, newPassword: values.newPassword },
+      { email: user.email, newPassword: values.newPassword },
       {
         onSuccess: () => {
           notify.success("Password updated", "Your password has been changed.");
@@ -101,10 +107,6 @@ export default function ChangePasswordPage() {
             if (err.status === 401) {
               notify.error("Session expired", "Please log in again.");
               router.replace("/login");
-              return;
-            }
-            if (err.status === 400 || err.status === 403) {
-              notify.error("Couldn't update password", "Your current password may be incorrect.");
               return;
             }
           }
@@ -118,9 +120,7 @@ export default function ChangePasswordPage() {
     <div className="mx-auto w-full max-w-xl space-y-6 p-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Change Password</h1>
-        <p className="text-muted-foreground">
-          Update the password for your own account, {user?.name?.split(" ")[0] || "there"}.
-        </p>
+        <p className="text-muted-foreground">Update the password for your own account.</p>
       </div>
 
       <motion.div
@@ -135,19 +135,11 @@ export default function ChangePasswordPage() {
               <CardTitle>Account Security</CardTitle>
             </div>
             <CardDescription>
-              Confirm your current password, then choose a new one to sign in with next time.
+              Choose a new password to sign in with next time, {user?.name?.split(" ")[0] || "there"}.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <CardContent className="space-y-4 pt-6">
-              <PasswordField
-                id="currentPassword"
-                label="Current Password"
-                placeholder="Enter your current password"
-                disabled={changePasswordMutation.isPending}
-                error={errors.currentPassword}
-                register={register}
-              />
               <PasswordField
                 id="newPassword"
                 label="New Password"

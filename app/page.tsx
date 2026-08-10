@@ -51,41 +51,9 @@ import { notify } from "@/lib/toast";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LoadingScreen } from "@/components/loading-screen";
 import { cn } from "@/lib/utils";
+import { pad2, todayIsoDate, toIsoDate, parseIsoDate, formatDisplayDate, formatDisplayTime } from "@/lib/utils/date";
 
 const STEP_LABELS = ["Reporter & Person", "Incident & Witnesses", "Causes & Equipment"];
-
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-function todayIsoDate() {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-}
-
-function toIsoDate(date: Date) {
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
-}
-
-function parseIsoDate(value?: string) {
-  if (!value) return undefined;
-  const d = new Date(`${value}T00:00:00`);
-  return Number.isNaN(d.getTime()) ? undefined : d;
-}
-
-function formatDisplayDate(date: Date) {
-  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-}
-
-function formatDisplayTime(value?: string) {
-  if (!value || !value.includes(":")) return "";
-  const [h, m] = value.split(":");
-  const hour = parseInt(h, 10);
-  if (Number.isNaN(hour)) return "";
-  const period = hour >= 12 ? "PM" : "AM";
-  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-  return `${displayHour}:${m} ${period}`;
-}
 
 const HOURS = Array.from({ length: 24 }, (_, i) => pad2(i));
 const MINUTES = Array.from({ length: 60 }, (_, i) => pad2(i));
@@ -449,14 +417,19 @@ const stepVariants = {
   exit: (dir: number) => ({ x: dir > 0 ? -32 : 32, opacity: 0 }),
 };
 
+const SUBMIT_COOLDOWN_MS = 10_000;
+const DRAFT_STORAGE_KEY = "incident-report-draft-v1";
+
 export default function LandingReportPage() {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [direction, setDirection] = useState(1);
   const [success, setSuccess] = useState(false);
+  const [referenceId, setReferenceId] = useState<number | null>(null);
   const [appReady, setAppReady] = useState(false);
   const token = useAuthToken();
   const createReport = useCreateIncidentReportMutation();
   const today = useMemo(() => new Date(), []);
+  const lastSubmitAtRef = React.useRef(0);
 
   useEffect(() => {
     const t = setTimeout(() => setAppReady(true), 1400);
@@ -470,6 +443,7 @@ export default function LandingReportPage() {
     trigger,
     watch,
     reset,
+    getValues,
     formState: { errors },
   } = useForm<IncidentReportValues>({
     resolver: zodResolver(incidentReportSchema),
@@ -479,6 +453,74 @@ export default function LandingReportPage() {
 
   const principalType = watch("principalType");
   const isLoading = createReport.isPending;
+
+  // Draft autosave: guards against losing a half-filled report to a refresh,
+  // an accidental tab close, or getting pulled away mid-form (common in a
+  // hospital setting).
+  const [draftPromptVisible, setDraftPromptVisible] = useState(false);
+  const saveTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(DRAFT_STORAGE_KEY)) setDraftPromptVisible(true);
+    } catch {
+      // localStorage unavailable (private browsing, disabled storage)
+    }
+  }, []);
+
+  useEffect(() => {
+    const subscription = watch((values) => {
+      if (draftPromptVisible) return; // don't overwrite the pending draft until the user decides
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => {
+        try {
+          localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(values));
+        } catch {
+          // localStorage unavailable
+        }
+      }, 600);
+    });
+    return () => {
+      subscription.unsubscribe();
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [watch, draftPromptVisible]);
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      const values = getValues();
+      const hasProgress = values.reporterName || values.principalName || values.causes;
+      if (hasProgress && !success) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [getValues, success]);
+
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch {
+      // localStorage unavailable
+    }
+  };
+
+  const resumeDraft = () => {
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (raw) reset(JSON.parse(raw) as IncidentReportValues);
+    } catch {
+      // corrupt or unavailable draft — nothing to restore
+    }
+    setDraftPromptVisible(false);
+  };
+
+  const discardDraft = () => {
+    clearDraft();
+    setDraftPromptVisible(false);
+  };
 
   const nextStep = async () => {
     const valid = await trigger(STEP_FIELDS[currentStep]);
@@ -494,12 +536,33 @@ export default function LandingReportPage() {
   };
 
   const onSubmit = (values: IncidentReportValues) => {
+    // Honeypot: real users never see or fill this field. If it's set, a bot
+    // filled every input it found — pretend success without hitting the API.
+    if (values.website) {
+      setSuccess(true);
+      setReferenceId(null);
+      clearDraft();
+      reset({ ...INCIDENT_REPORT_DEFAULTS, reporterDate: todayIsoDate() });
+      setDirection(-1);
+      setCurrentStep(1);
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastSubmitAtRef.current < SUBMIT_COOLDOWN_MS) {
+      notify.error("Please wait a moment", "Give it a few seconds before submitting another report.");
+      return;
+    }
+    lastSubmitAtRef.current = now;
+
     createReport.mutate(
       { ...values, reporterDate: todayIsoDate() },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
           setSuccess(true);
+          setReferenceId(data?.id ?? null);
           notify.success("Report submitted", "Your incident report has been logged into the system.");
+          clearDraft();
           reset({ ...INCIDENT_REPORT_DEFAULTS, reporterDate: todayIsoDate() });
           setDirection(-1);
           setCurrentStep(1);
@@ -576,7 +639,38 @@ export default function LandingReportPage() {
               </CardHeader>
 
               <form onSubmit={handleSubmit(onSubmit)} noValidate>
+                {/* Honeypot: hidden from real users (off-screen, unfocusable, unannounced), bots that
+                    auto-fill every input tend to fill this one and give themselves away. */}
+                <div className="absolute -left-[9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+                  <label htmlFor="website">Leave this field blank</label>
+                  <input id="website" type="text" tabIndex={-1} autoComplete="off" {...register("website")} />
+                </div>
+
                 <CardContent className="space-y-6 px-6 pt-6 sm:px-10">
+                  <AnimatePresence>
+                    {draftPromptVisible && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        animate={{ opacity: 1, height: "auto", marginBottom: 8 }}
+                        exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex flex-col gap-3 rounded-2xl border border-amber-200/70 bg-amber-50 px-4 py-3 text-sm text-amber-800 sm:flex-row sm:items-center sm:justify-between dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400">
+                          <span>You have an unsaved report from a previous visit. Resume where you left off?</span>
+                          <div className="flex shrink-0 gap-2">
+                            <Button type="button" size="sm" variant="outline" onClick={discardDraft} className="rounded-lg">
+                              Discard
+                            </Button>
+                            <Button type="button" size="sm" onClick={resumeDraft} className="rounded-lg">
+                              Resume Draft
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <AnimatePresence>
                     {success && (
                       <motion.div
@@ -595,7 +689,14 @@ export default function LandingReportPage() {
                           >
                             <ShieldCheck className="h-4 w-4" />
                           </motion.span>
-                          Your incident report has been logged into the system.
+                          <div className="flex flex-col">
+                            <span>Your incident report has been logged into the system.</span>
+                            {referenceId != null && (
+                              <span className="font-semibold">
+                                Reference number #{referenceId} — keep it for follow-up.
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </motion.div>
                     )}
