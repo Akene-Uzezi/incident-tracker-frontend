@@ -52,6 +52,12 @@ function getNavItems(pathname: string): NavigationItem[] {
       variant: pathname === "/dashboard/incidents" ? "default" : "ghost",
     },
     {
+      label: "View DeathReports",
+      href: process.env.NEXT_PUBLIC_deathreport,
+      icon: ClipboardList,
+      variant: "ghost",
+    },
+    {
       label: "Report an Incident",
       href: "/",
       icon: FilePlus2,
@@ -151,11 +157,11 @@ function UserMenu({
   const router = useRouter();
   const initials = user?.name
     ? user.name
-        .split(" ")
-        .map((p) => p[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
+      .split(" ")
+      .map((p) => p[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase()
     : "?";
 
   return (
