@@ -53,7 +53,7 @@ function getNavItems(pathname: string): NavigationItem[] {
     },
     {
       label: "View DeathReports",
-      href: process.env.NEXT_PUBLIC_deathreport,
+      href: process.env.NEXT_PUBLIC_deathreport || "http://localhost:3001/dashboard/death-reports",
       icon: ClipboardList,
       variant: "ghost",
     },

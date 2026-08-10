@@ -31,7 +31,8 @@ A production-ready incident management system built with Next.js 16, designed fo
 - **Pagination**: Efficient incident list browsing
 - **Responsive Design**: Mobile-friendly sidebar and layouts
 - **Dark Mode**: Theme support via `next-themes`
-- **Toast Notifications**: Success/error feedback via `sonner`
+  - **Toast Notifications**: Success/error feedback via `sonner`
+  - **Cross-App Death Report Notifications**: Get notified when a death report is submitted (shared with the Death Report app via the backend), with "Mark all read" and "Clear all" controls in the notification bell
 
 ## Tech Stack
 
